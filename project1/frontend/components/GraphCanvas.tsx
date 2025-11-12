@@ -1,147 +1,109 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import ReactFlow, {
-  Background,
-  Controls,
-  Edge,
-  Node,
-  ReactFlowInstance,
-  useEdgesState,
-  useNodesState
-} from 'reactflow';
-import 'reactflow/dist/style.css';
+import { useCallback, useMemo } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { Line, OrbitControls } from '@react-three/drei';
 import './GraphCanvas.css';
 
+export interface GraphNode {
+  id: string;
+  position: [number, number, number];
+  color?: string;
+  data?: {
+    label: string;
+    description?: string;
+    [key: string]: unknown;
+  };
+}
+
+export interface GraphEdge {
+  id: string;
+  source: string;
+  target: string;
+}
+
 interface GraphCanvasProps {
-  nodes: Node[];
-  edges: Edge[];
+  nodes: GraphNode[];
+  edges: GraphEdge[];
   onNodeClick?: (nodeId: string) => void;
 }
 
-export default function GraphCanvas({ nodes: initialNodes, edges: initialEdges, onNodeClick }: GraphCanvasProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
-  const [isZooming, setIsZooming] = useState(false);
-  const zoomTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastMousePosition = useRef<{ x: number; y: number } | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
-
-  // Update nodes and edges when props change
-  useEffect(() => {
-    setNodes(initialNodes);
-    setEdges(initialEdges);
-  }, [initialNodes, initialEdges, setNodes, setEdges]);
-
-  const onInit = useCallback((instance: ReactFlowInstance) => {
-    setReactFlowInstance(instance);
-  }, []);
-
-  const onNodeClickHandler = useCallback((event: React.MouseEvent, node: Node) => {
-    if (!reactFlowInstance) return;
-
-    // Get node position
-    const nodePosition = node.position;
-    const nodeWidth = node.width || 50;
-    const nodeHeight = node.height || 50;
-
-    // Calculate center of node in viewport coordinates
-    const viewport = reactFlowInstance.getViewport();
-    const nodeCenterX = (nodePosition.x + nodeWidth / 2) * viewport.zoom + viewport.x;
-    const nodeCenterY = (nodePosition.y + nodeHeight / 2) * viewport.zoom + viewport.y;
-
-    // Animate zoom to node with fast zoom-in animation
-    setIsZooming(true);
-    reactFlowInstance.setCenter(nodePosition.x + nodeWidth / 2, nodePosition.y + nodeHeight / 2, {
-      zoom: 2.5,
-      duration: 400,
-    });
-
-    // After animation, trigger detail view (if provided)
-    setTimeout(() => {
-      onNodeClick?.(node.id);
-      setIsZooming(false);
-    }, 400);
-  }, [reactFlowInstance, onNodeClick]);
-
-  const onMouseMove = useCallback((event: React.MouseEvent) => {
-    if (!reactFlowInstance || isZooming) return;
-
-    const reactFlowBounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    const mouseX = event.clientX - reactFlowBounds.left;
-    const mouseY = event.clientY - reactFlowBounds.top;
-
-    lastMousePosition.current = { x: mouseX, y: mouseY };
-
-    // Cancel any pending animation frame
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
-
-    // Use requestAnimationFrame for smooth zoom
-    animationFrameRef.current = requestAnimationFrame(() => {
-      if (!reactFlowInstance || isZooming) return;
-
-      const viewport = reactFlowInstance.getViewport();
-      const currentZoom = viewport.zoom;
-
-      // Only zoom if not already at max zoom
-      if (currentZoom < 2.5) {
-        // Convert mouse position to flow coordinates
-        const flowPosition = reactFlowInstance.screenToFlowPosition({
-          x: mouseX,
-          y: mouseY,
-        });
-
-        // Calculate new zoom (smooth zoom in)
-        const newZoom = Math.min(currentZoom + 0.005, 2.5);
-
-        // Set zoom centered on mouse position
-        reactFlowInstance.setCenter(flowPosition.x, flowPosition.y, {
-          zoom: newZoom,
-          duration: 50,
-        });
-      }
-    });
-  }, [reactFlowInstance, isZooming]);
-
-  const onMouseLeave = useCallback(() => {
-    if (zoomTimeoutRef.current) {
-      clearTimeout(zoomTimeoutRef.current);
-    }
-    lastMousePosition.current = null;
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (zoomTimeoutRef.current) {
-        clearTimeout(zoomTimeoutRef.current);
-      }
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
-  }, []);
+function GraphNodeMesh({ node, onClick }: { node: GraphNode; onClick?: (nodeId: string) => void }) {
+  const handleClick = useCallback(() => {
+    onClick?.(node.id);
+  }, [node.id, onClick]);
 
   return (
-    <div className="graph-container" onMouseMove={onMouseMove} onMouseLeave={onMouseLeave}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onInit={onInit}
-        onNodeClick={onNodeClickHandler}
-        fitView
-        minZoom={0.5}
-        maxZoom={3}
-        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-        nodeTypes={{}}
-      >
-        <Background />
-        <Controls />
-      </ReactFlow>
+    <mesh position={node.position} onClick={handleClick} castShadow>
+      <sphereGeometry args={[0.25, 32, 32]} />
+      <meshStandardMaterial
+        color={node.color ?? '#667eea'}
+        emissive={node.color ?? '#667eea'}
+        emissiveIntensity={0.25}
+        roughness={0.35}
+        metalness={0.25}
+      />
+    </mesh>
+  );
+}
+
+function GraphEdgeLine({
+  start,
+  end,
+}: {
+  start: [number, number, number];
+  end: [number, number, number];
+}) {
+  return (
+    <Line
+      points={[start, end]}
+      color="#9ca3af"
+      lineWidth={1.5}
+      transparent
+      opacity={0.35}
+      depthWrite={false}
+    />
+  );
+}
+
+export default function GraphCanvas({ nodes, edges, onNodeClick }: GraphCanvasProps) {
+  const nodePositionMap = useMemo(() => {
+    const map = new Map<string, [number, number, number]>();
+    nodes.forEach((node) => {
+      map.set(node.id, node.position);
+    });
+    return map;
+  }, [nodes]);
+
+  const edgeLines = useMemo(
+    () =>
+      edges.reduce<JSX.Element[]>((acc, edge) => {
+        const start = nodePositionMap.get(edge.source);
+        const end = nodePositionMap.get(edge.target);
+        if (!start || !end) return acc;
+        acc.push(<GraphEdgeLine key={edge.id} start={start} end={end} />);
+        return acc;
+      }, []),
+    [edges, nodePositionMap]
+  );
+
+  return (
+    <div className="graph-container">
+      <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
+        <color attach="background" args={['#05060d']} />
+        <ambientLight intensity={0.6} />
+        <directionalLight position={[5, 8, 5]} intensity={0.8} />
+        <directionalLight position={[-6, -4, -5]} intensity={0.35} />
+        <pointLight position={[0, 0, 0]} intensity={0.2} />
+
+        {edgeLines}
+
+        {nodes.map((node) => (
+          <GraphNodeMesh key={node.id} node={node} onClick={onNodeClick} />
+        ))}
+
+        <OrbitControls enableDamping dampingFactor={0.08} rotateSpeed={0.6} />
+      </Canvas>
     </div>
   );
 }
