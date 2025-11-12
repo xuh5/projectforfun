@@ -3,21 +3,10 @@
 import { useEffect, useState } from 'react';
 import { Edge, Node } from 'reactflow';
 import GraphCanvas from '../components/GraphCanvas';
-import NodeDetail from '../components/NodeDetail';
-
-interface NodeData {
-  id: string;
-  data: {
-    label: string;
-    description?: string;
-    [key: string]: any;
-  };
-}
 
 export default function Home() {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [selectedNode, setSelectedNode] = useState<NodeData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,11 +18,13 @@ export default function Home() {
       const response = await fetch('/api/nodes');
       const data = await response.json();
 
-      // Convert API data to ReactFlow format
-      const flowNodes: Node[] = data.nodes.map((node: any) => ({
+      const apiNodes: Node[] = (data?.nodes || []).map((node: any) => ({
         id: node.id,
         type: 'default',
-        position: { x: node.x || Math.random() * 800, y: node.y || Math.random() * 600 },
+        position: {
+          x: node.x ?? Math.random() * 800,
+          y: node.y ?? Math.random() * 600,
+        },
         data: {
           label: node.label || node.id,
           description: node.description,
@@ -54,7 +45,7 @@ export default function Home() {
         },
       }));
 
-      const flowEdges: Edge[] = data.edges.map((edge: any) => ({
+      const apiEdges: Edge[] = (data?.edges || []).map((edge: any) => ({
         id: edge.id || `${edge.source}-${edge.target}`,
         source: edge.source,
         target: edge.target,
@@ -62,8 +53,13 @@ export default function Home() {
         animated: true,
       }));
 
-      setNodes(flowNodes);
-      setEdges(flowEdges);
+      if (!apiNodes.length || !apiEdges.length) {
+        generateSampleData();
+        return;
+      }
+
+      setNodes(apiNodes);
+      setEdges(apiEdges);
     } catch (error) {
       console.error('Error fetching graph data:', error);
       // Fallback to sample data
@@ -137,44 +133,21 @@ export default function Home() {
     setEdges(sampleEdges);
   };
 
-  const handleNodeClick = async (nodeId: string) => {
-    try {
-      const response = await fetch(`/api/nodes/${nodeId}`);
-      const nodeData = await response.json();
-      setSelectedNode(nodeData);
-    } catch (error) {
-      console.error('Error fetching node details:', error);
-      // Fallback to node from current state
-      const node = nodes.find((n) => n.id === nodeId);
-      if (node) {
-        setSelectedNode({
-          id: node.id,
-          data: node.data as any,
-        });
-      }
-    }
-  };
-
   if (loading) {
     return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: 'white',
-        fontSize: '1.5rem'
-      }}>
-        Loading graph...
+      <div className="page-wrapper">
+        <div className="canvas-window">
+          <span className="canvas-status">Loading graph…</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <main style={{ width: '100vw', height: '100vh', margin: 0, padding: 0, overflow: 'hidden' }}>
-      <GraphCanvas nodes={nodes} edges={edges} onNodeClick={handleNodeClick} />
-      <NodeDetail node={selectedNode} onClose={() => setSelectedNode(null)} />
-    </main>
+    <div className="page-wrapper">
+      <div className="canvas-window">
+        <GraphCanvas nodes={nodes} edges={edges} />
+      </div>
+    </div>
   );
 }

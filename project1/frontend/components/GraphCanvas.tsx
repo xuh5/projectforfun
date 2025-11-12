@@ -16,7 +16,7 @@ import './GraphCanvas.css';
 interface GraphCanvasProps {
   nodes: Node[];
   edges: Edge[];
-  onNodeClick: (nodeId: string) => void;
+  onNodeClick?: (nodeId: string) => void;
 }
 
 export default function GraphCanvas({ nodes: initialNodes, edges: initialEdges, onNodeClick }: GraphCanvasProps) {
@@ -58,9 +58,9 @@ export default function GraphCanvas({ nodes: initialNodes, edges: initialEdges, 
       duration: 400,
     });
 
-    // After animation, trigger detail view
+    // After animation, trigger detail view (if provided)
     setTimeout(() => {
-      onNodeClick(node.id);
+      onNodeClick?.(node.id);
       setIsZooming(false);
     }, 400);
   }, [reactFlowInstance, onNodeClick]);
