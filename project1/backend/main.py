@@ -51,25 +51,44 @@ def generate_sample_graph():
     """Generate a sample graph with nodes in a circular pattern"""
     nodes = []
     edges = []
-    node_count = 12
+    
+    # Company names and their details
+    companies = [
+        {"name": "NVIDIA", "sector": "Technology", "color": "#76b900"},
+        {"name": "Tesla", "sector": "Automotive", "color": "#e82127"},
+        {"name": "Apple", "sector": "Technology", "color": "#a6b1b7"},
+        {"name": "Microsoft", "sector": "Technology", "color": "#00a4ef"},
+        {"name": "Amazon", "sector": "E-commerce", "color": "#ff9900"},
+        {"name": "Google", "sector": "Technology", "color": "#4285f4"},
+        {"name": "Meta", "sector": "Technology", "color": "#0668e1"},
+        {"name": "Netflix", "sector": "Entertainment", "color": "#e50914"},
+        {"name": "AMD", "sector": "Technology", "color": "#ed1c24"},
+        {"name": "Intel", "sector": "Technology", "color": "#0071c5"},
+        {"name": "Salesforce", "sector": "Technology", "color": "#00a1e0"},
+        {"name": "Oracle", "sector": "Technology", "color": "#f80000"},
+    ]
+    
+    node_count = len(companies)
     radius = 300
     center_x = 400
     center_y = 300
-    colors = ["#667eea", "#764ba2", "#f093fb"]
 
     for i in range(node_count):
         angle = (2 * math.pi * i) / node_count
         x = center_x + radius * math.cos(angle)
         y = center_y + radius * math.sin(angle)
+        
+        company = companies[i]
 
         nodes.append(NodeData(
             id=f"node-{i}",
-            label=f"Node {i + 1}",
-            description=f"This is node number {i + 1} in the graph network. It represents an important data point in the system.",
+            label=company["name"],
+            description=f"{company['name']} - A leading company in the {company['sector']} sector.",
             x=x,
             y=y,
-            color=colors[i % 3],
+            color=company["color"],
             data={
+                "sector": company["sector"],
                 "value": (i + 1) * 10,
                 "category": ["A", "B", "C"][i % 3],
                 "connections": 2 if i == 0 or i == node_count - 1 else 2,

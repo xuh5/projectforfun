@@ -1,24 +1,48 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import GraphCanvas, { GraphEdge, GraphNode } from '../components/GraphCanvas';
+import {
+  forceCenter,
+  forceCollide,
+  forceLink,
+  forceManyBody,
+  forceSimulation,
+  forceX,
+  forceY,
+  forceZ
+} from 'd3-force-3d';
 
-const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
-
-const computeSphericalPosition = (index: number, total: number, radius = 5): [number, number, number] => {
-  if (total <= 1) {
-    return [0, 0, 0];
-  }
-
-  const normalizedIndex = index + 0.5;
-  const y = 1 - (normalizedIndex / total) * 2;
-  const distance = Math.sqrt(Math.max(0, 1 - y * y));
-  const theta = GOLDEN_ANGLE * normalizedIndex;
-  const x = Math.cos(theta) * distance;
-  const z = Math.sin(theta) * distance;
-
-  return [x * radius, y * radius, z * radius];
-};
+const DEFAULT_COMPANY_NAMES = [
+  'NVIDIA',
+  'Tesla',
+  'Apple',
+  'Microsoft',
+  'Amazon',
+  'Google',
+  'Meta',
+  'AMD',
+  'Intel',
+  'Netflix',
+  'Adobe',
+  'Salesforce',
+  'Samsung',
+  'Qualcomm',
+  'Spotify',
+  'Uber',
+  'Airbnb',
+  'IBM',
+  'Oracle',
+  'Stripe',
+  'Shopify',
+  'ByteDance',
+  'Tencent',
+  'Alibaba',
+  'TSMC',
+  'Unity',
+  'Roblox',
+  'Zoom'
+];
 
 const normalizeCartesianPosition = (position: Record<string, unknown>): [number, number, number] | null => {
   if (!position) return null;
@@ -42,32 +66,142 @@ const normalizeCartesianPosition = (position: Record<string, unknown>): [number,
   ];
 };
 
+const createInitialPosition = (fallbackScale: number): [number, number, number] => {
+  const range = Math.max(2, fallbackScale);
+  return [
+    (Math.random() - 0.5) * range,
+    (Math.random() - 0.5) * range,
+    (Math.random() - 0.5) * range,
+  ];
+};
+
+type SimulationNode = GraphNode & {
+  x?: number;
+  y?: number;
+  z?: number;
+  vx?: number;
+  vy?: number;
+  vz?: number;
+  fx?: number;
+  fy?: number;
+  fz?: number;
+  index?: number;
+};
+
+type SimulationLink = {
+  source: string;
+  target: string;
+  strength?: number;
+};
+
+const DEFAULT_LINK_STRENGTH = 0.15;
+
+const runForceDirectedLayout = (
+  nodes: GraphNode[],
+  edges: GraphEdge[],
+  iterations = 300
+): GraphNode[] => {
+  if (!nodes.length || edges.length === 0) {
+    return nodes;
+  }
+
+  const scale = Math.cbrt(nodes.length) * 6;
+
+  const simulationNodes: SimulationNode[] = nodes.map((node) => {
+    const initial = node.position ?? createInitialPosition(scale);
+    return {
+      ...node,
+      x: initial[0],
+      y: initial[1],
+      z: initial[2],
+    };
+  });
+
+  const simulationLinks: SimulationLink[] = edges.map((edge) => ({
+    source: edge.source,
+    target: edge.target,
+    strength: typeof edge.strength === 'number' && Number.isFinite(edge.strength)
+      ? Math.min(Math.max(edge.strength, 0), 1)
+      : undefined,
+  }));
+
+  const linkForce = forceLink<SimulationNode, SimulationLink>(simulationLinks)
+    .id((node: SimulationNode) => node.id)
+    .strength((link: SimulationLink) => link.strength ?? DEFAULT_LINK_STRENGTH)
+    .distance(() => 1.8);
+
+  const baseCharge = -12 * Math.cbrt(nodes.length);
+
+  const simulation = forceSimulation<SimulationNode>(simulationNodes)
+    .force('link', linkForce)
+    .force('charge', forceManyBody().strength(baseCharge))
+    .force('center', forceCenter(0, 0, 0))
+    .force('collision', forceCollide<SimulationNode>(0.85).strength(0.95))
+    .force('x', forceX<SimulationNode>(0).strength(0.02))
+    .force('y', forceY<SimulationNode>(0).strength(0.02))
+    .force('z', forceZ<SimulationNode>(0).strength(0.02));
+
+  simulation.alpha(1).alphaMin(0.001);
+  simulation.stop();
+
+  for (let i = 0; i < iterations; i += 1) {
+    simulation.tick();
+  }
+
+  return simulationNodes.map((node) => {
+    const {
+      x = 0,
+      y = 0,
+      z = 0,
+      vx,
+      vy,
+      vz,
+      fx,
+      fy,
+      fz,
+      index,
+      position: _position,
+      ...rest
+    } = node;
+
+    return {
+      ...rest,
+      position: [x, y, z] as [number, number, number],
+    };
+  });
+};
+
 const createGraphNode = (node: any, index: number, total: number): GraphNode => {
   const positionFromNode = normalizeCartesianPosition(node?.position ?? {});
-  const fallbackPosition = computeSphericalPosition(index, total);
-
   const rawData = { ...(node?.data ?? {}) };
-  const label =
-    typeof node?.label === 'string'
-      ? node.label
-      : typeof rawData.label === 'string'
-        ? rawData.label
-        : String(node?.id ?? `node-${index}`);
+  const fallbackName = DEFAULT_COMPANY_NAMES[index % DEFAULT_COMPANY_NAMES.length];
+
+  const labelCandidates = [
+    node?.label,
+    rawData.label,
+    rawData.name,
+    node?.name,
+  ];
+
+  const resolvedLabel =
+    labelCandidates.find((value) => typeof value === 'string' && value.trim().length > 0)?.toString() ??
+    fallbackName;
+
   const description =
     typeof node?.description === 'string'
       ? node.description
       : typeof rawData.description === 'string'
         ? rawData.description
-        : undefined;
+        : `${resolvedLabel} is a key company within the network.`;
 
   return {
     id: String(node?.id ?? `node-${index}`),
-    position: positionFromNode ?? fallbackPosition,
+    position: positionFromNode ?? createInitialPosition(total),
     color: typeof node?.color === 'string' ? node.color : (typeof rawData.color === 'string' ? rawData.color : undefined),
     data: {
       ...rawData,
-      label,
-      ...(description ? { description } : {}),
+      label: resolvedLabel,
+      description,
     },
   };
 };
@@ -84,6 +218,10 @@ const createGraphEdge = (edge: any, index: number): GraphEdge | null => {
     id: String(edge?.id ?? `edge-${index}`),
     source: String(source),
     target: String(target),
+    strength:
+      typeof edge?.strength === 'number' && Number.isFinite(edge.strength)
+        ? edge.strength
+        : undefined,
   };
 };
 
@@ -91,6 +229,8 @@ export default function Home() {
   const [nodes, setNodes] = useState<GraphNode[]>([]);
   const [edges, setEdges] = useState<GraphEdge[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchGraphData();
@@ -119,7 +259,8 @@ export default function Home() {
         return;
       }
 
-      setNodes(apiNodes);
+      const positionedNodes = runForceDirectedLayout(apiNodes, apiEdges);
+      setNodes(positionedNodes);
       setEdges(apiEdges);
     } catch (error) {
       console.error('Error fetching graph data:', error);
@@ -134,21 +275,22 @@ export default function Home() {
     // Generate sample nodes in a circular pattern
     const nodeCount = 18;
     const palette = ['#667eea', '#764ba2', '#f093fb', '#4f46e5', '#22d3ee', '#f472b6'];
-    const categories = ['A', 'B', 'C'];
+    const sectors = ['AI', 'Automotive', 'Consumer', 'Enterprise', 'Cloud', 'Semiconductors'];
 
     const sampleNodes: GraphNode[] = Array.from({ length: nodeCount }, (_, index) => {
-      const position = computeSphericalPosition(index, nodeCount, 5);
       const color = palette[index % palette.length];
+      const companyName = DEFAULT_COMPANY_NAMES[index % DEFAULT_COMPANY_NAMES.length];
+      const sector = sectors[index % sectors.length];
 
       return {
         id: `node-${index + 1}`,
-        position,
+        position: createInitialPosition(nodeCount),
         color,
         data: {
-          label: `Node ${index + 1}`,
-          description: `This is node number ${index + 1} in the 3D graph.`,
-          category: categories[index % categories.length],
-          value: Math.floor(Math.random() * 100),
+          label: companyName,
+          description: `${companyName} is a leading ${sector.toLowerCase()} company in our sample network.`,
+          sector,
+          marketCap: `${(Math.random() * 900 + 100).toFixed(1)}B`,
           color,
         },
       };
@@ -164,6 +306,7 @@ export default function Home() {
         id: `edge-${i}-${nextIndex}`,
         source: sampleNodes[i].id,
         target: sampleNodes[nextIndex].id,
+        strength: 0.25,
       });
 
       if (longIndex !== nextIndex) {
@@ -171,13 +314,59 @@ export default function Home() {
           id: `edge-${i}-${longIndex}`,
           source: sampleNodes[i].id,
           target: sampleNodes[longIndex].id,
+          strength: 0.1,
         });
       }
     }
 
-    setNodes(sampleNodes);
+    const positionedNodes = runForceDirectedLayout(sampleNodes, sampleEdges, 400);
+    setNodes(positionedNodes);
     setEdges(sampleEdges);
   };
+
+  const matchingNodes = useMemo(() => {
+    const term = searchQuery.trim().toLowerCase();
+    if (!term) return [];
+
+    return nodes
+      .filter((node) => {
+        const label = typeof node.data?.label === 'string' ? node.data.label : '';
+        return label.toLowerCase().includes(term) || node.id.toLowerCase().includes(term);
+      })
+      .slice(0, 8);
+  }, [nodes, searchQuery]);
+
+  const handleSearchChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    setSearchQuery(value);
+    if (value.trim().length === 0) {
+      setFocusNodeId(null);
+    }
+  }, []);
+
+  const handleSearchSubmit = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const trimmed = searchQuery.trim();
+      if (!trimmed) return;
+      const firstMatch = matchingNodes[0];
+      if (firstMatch) {
+        const resolvedLabel =
+          typeof firstMatch.data?.label === 'string' && firstMatch.data.label.trim().length > 0
+            ? firstMatch.data.label
+            : firstMatch.id;
+        setSearchQuery(resolvedLabel);
+        setFocusNodeId(firstMatch.id);
+      }
+    },
+    [matchingNodes, searchQuery]
+  );
+
+  useEffect(() => {
+    if (focusNodeId && !nodes.some((node) => node.id === focusNodeId)) {
+      setFocusNodeId(null);
+    }
+  }, [focusNodeId, nodes]);
 
   if (loading) {
     return (
@@ -191,8 +380,51 @@ export default function Home() {
 
   return (
     <div className="page-wrapper">
+      <div className="search-container">
+        <form className="search-form" onSubmit={handleSearchSubmit}>
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={handleSearchChange}
+            placeholder="Search companies by name or node ID…"
+            aria-label="Search companies"
+            autoComplete="off"
+          />
+          <button type="submit">Search</button>
+        </form>
+
+        {searchQuery.trim().length > 0 ? (
+          matchingNodes.length > 0 ? (
+            <ul className="search-results" role="listbox">
+              {matchingNodes.map((node) => {
+                const resolvedLabel =
+                  typeof node.data?.label === 'string' && node.data.label.trim().length > 0
+                    ? node.data.label
+                    : node.id;
+                return (
+                  <li key={node.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery(resolvedLabel);
+                        setFocusNodeId(node.id);
+                      }}
+                      aria-label={`Copy ${resolvedLabel} into search`}
+                    >
+                      <span className="result-label">{resolvedLabel}</span>
+                      <span className="result-meta">{node.id}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="search-empty">No companies match that search.</div>
+          )
+        ) : null}
+      </div>
       <div className="canvas-window">
-        <GraphCanvas nodes={nodes} edges={edges} />
+        <GraphCanvas nodes={nodes} edges={edges} focusNodeId={focusNodeId} />
       </div>
     </div>
   );
