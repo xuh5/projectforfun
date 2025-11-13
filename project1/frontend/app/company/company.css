@@ -1,0 +1,387 @@
+.company-page {
+  min-height: 100vh;
+  padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1.75rem, 5vw, 4rem);
+  background: linear-gradient(
+    160deg,
+    rgba(224, 231, 255, 0.6) 0%,
+    rgba(226, 232, 240, 0.5) 42%,
+    rgba(248, 250, 252, 0.45) 100%
+  );
+  display: flex;
+  justify-content: center;
+  color: #0f172a;
+}
+
+.company-shell {
+  width: min(1200px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2.25rem, 4vw, 3.5rem);
+}
+
+.company-hero {
+  padding: clamp(2.25rem, 5vw, 3.5rem);
+  border-radius: 32px;
+  background:
+    linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(59, 130, 246, 0.08)),
+    rgba(248, 250, 252, 0.9);
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  display: grid;
+  gap: clamp(1.75rem, 4vw, 2.5rem);
+  backdrop-filter: blur(18px);
+  box-shadow:
+    0 28px 60px rgba(79, 70, 229, 0.12),
+    0 18px 30px rgba(15, 23, 42, 0.1);
+}
+
+.company-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  font-size: 0.75rem;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  background: rgba(79, 70, 229, 0.12);
+  border: 1px solid rgba(67, 56, 202, 0.35);
+  color: #312e81;
+}
+
+.company-title {
+  margin-top: clamp(0.85rem, 2vw, 1.1rem);
+  font-size: clamp(2.4rem, 6vw, 3.4rem);
+  font-weight: 700;
+  line-height: 1.1;
+  color: #1e1b4b;
+}
+
+.company-description {
+  margin-top: clamp(0.75rem, 2vw, 1rem);
+  font-size: clamp(1rem, 2vw, 1.15rem);
+  line-height: 1.7;
+  color: rgba(15, 23, 42, 0.85);
+  max-width: 60ch;
+}
+
+.company-metrics {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: clamp(1rem, 4vw, 1.75rem);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.company-metrics div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.company-metrics dt {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.78rem;
+  color: rgba(71, 85, 105, 0.85);
+}
+
+.company-metrics dd {
+  margin: 0;
+  font-size: clamp(1.15rem, 2.4vw, 1.45rem);
+  font-weight: 700;
+  color: #111827;
+}
+
+.metric-up {
+  color: #16a34a;
+}
+
+.metric-down {
+  color: #ef4444;
+}
+
+.company-content-grid {
+  display: grid;
+  gap: clamp(1.85rem, 3vw, 2.5rem);
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.25fr);
+  align-items: stretch;
+}
+
+.company-overview,
+.company-stock {
+  background: rgba(248, 250, 252, 0.95);
+  border-radius: 26px;
+  padding: clamp(1.9rem, 4vw, 2.6rem);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  box-shadow:
+    0 18px 45px rgba(15, 23, 42, 0.12),
+    0 12px 24px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.15rem, 3vw, 1.65rem);
+}
+
+.company-overview header,
+.company-stock header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.company-overview h2,
+.company-stock h2,
+.company-connections h2 {
+  font-size: clamp(1.35rem, 3vw, 1.85rem);
+  margin: 0;
+  color: #1f2937;
+}
+
+.company-overview p,
+.company-stock p,
+.company-connections p {
+  margin: 0.35rem 0 0;
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: rgba(31, 41, 55, 0.8);
+}
+
+.company-overview dl {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1.35rem;
+}
+
+.company-overview dl div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-right: 0.25rem;
+}
+
+.company-overview dt {
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(71, 85, 105, 0.78);
+}
+
+.company-overview dd {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.stock-label {
+  align-self: flex-start;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #1d4ed8;
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+}
+
+.stock-chart {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+}
+
+.stock-chart-empty {
+  width: 100%;
+  padding: 2rem 0;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: rgba(226, 232, 240, 0.4);
+  color: rgba(71, 85, 105, 0.85);
+  font-size: 0.95rem;
+}
+
+.stock-metrics {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1.1rem;
+}
+
+.stock-metrics li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.stock-metrics span {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(71, 85, 105, 0.75);
+}
+
+.stock-metrics strong {
+  font-size: 1.05rem;
+  color: #0f172a;
+}
+
+.company-connections {
+  background: rgba(248, 250, 252, 0.98);
+  border-radius: 28px;
+  padding: clamp(2.1rem, 4vw, 3rem);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow:
+    0 20px 50px rgba(15, 23, 42, 0.12),
+    0 14px 32px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.25rem, 3vw, 1.85rem);
+}
+
+.company-connections header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.connection-count {
+  align-self: center;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  color: #3730a3;
+}
+
+.connected-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: clamp(1.15rem, 2.5vw, 1.8rem);
+}
+
+.connected-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.35rem 1.3rem;
+  border-radius: 20px;
+  text-decoration: none;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  position: relative;
+}
+
+.connected-card:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 18px 35px rgba(79, 70, 229, 0.18),
+    0 8px 16px rgba(15, 23, 42, 0.12);
+  border-color: rgba(79, 70, 229, 0.35);
+}
+
+.connected-color {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  box-shadow: 0 6px 14px rgba(79, 70, 229, 0.35);
+}
+
+.connected-card h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #1e1b4b;
+}
+
+.connected-card p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: rgba(30, 41, 59, 0.78);
+}
+
+.connected-link {
+  margin-top: auto;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: #4338ca;
+  letter-spacing: 0.04em;
+}
+
+.connections-empty {
+  padding: 1.5rem;
+  border-radius: 18px;
+  background: rgba(226, 232, 240, 0.35);
+  color: rgba(71, 85, 105, 0.85);
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.company-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.company-back-link {
+  color: #4338ca;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 999px;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: rgba(255, 255, 255, 0.85);
+  transition: transform 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  text-decoration: none;
+}
+
+.company-back-link:hover {
+  color: #312e81;
+  transform: translateX(-3px);
+  box-shadow:
+    0 12px 24px rgba(79, 70, 229, 0.2),
+    0 6px 12px rgba(15, 23, 42, 0.12);
+}
+
+@media (max-width: 990px) {
+  .company-content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .company-page {
+    padding: clamp(2rem, 8vw, 3rem) clamp(1rem, 6vw, 2rem);
+  }
+
+  .company-shell {
+    gap: clamp(1.75rem, 6vw, 2.5rem);
+  }
+
+  .company-hero {
+    padding: clamp(1.75rem, 7vw, 2.4rem);
+  }
+
+  .company-overview,
+  .company-stock,
+  .company-connections {
+    padding: clamp(1.5rem, 6vw, 2.1rem);
+  }
+
+  .connected-grid {
+    grid-template-columns: 1fr;
+  }
+}

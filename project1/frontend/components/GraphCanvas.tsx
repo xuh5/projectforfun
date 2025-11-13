@@ -7,23 +7,9 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { Vector3 } from 'three';
 import './GraphCanvas.css';
 
-export interface GraphNode {
-  id: string;
-  position: [number, number, number];
-  color?: string;
-  data?: {
-    label: string;
-    description?: string;
-    [key: string]: unknown;
-  };
-}
+import type { GraphNode, GraphEdge } from '../lib/types';
 
-export interface GraphEdge {
-  id: string;
-  source: string;
-  target: string;
-  strength?: number;
-}
+export type { GraphNode, GraphEdge } from '../lib/types';
 
 interface GraphCanvasProps {
   nodes: GraphNode[];

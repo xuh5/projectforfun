@@ -2,16 +2,10 @@
 
 import { useEffect } from 'react';
 import './NodeDetail.css';
+import type { GraphNode } from '../lib/types';
 
 interface NodeDetailProps {
-  node: {
-    id: string;
-    data: {
-      label: string;
-      description?: string;
-      [key: string]: any;
-    };
-  } | null;
+  node: GraphNode | null;
   onClose: () => void;
 }
 
@@ -28,7 +22,7 @@ export default function NodeDetail({ node, onClose }: NodeDetailProps) {
     };
   }, [node]);
 
-  if (!node) return null;
+  if (!node || !node.data) return null;
 
   return (
     <div className="node-detail-overlay" onClick={onClose}>
@@ -45,14 +39,13 @@ export default function NodeDetail({ node, onClose }: NodeDetailProps) {
           <div className="node-detail-info">
             <h3>Node Information</h3>
             <ul>
-              {Object.entries(node.data).map(([key, value]) => {
-                if (key === 'label' || key === 'description') return null;
-                return (
+              {Object.entries(node.data)
+                .filter(([key]) => key !== 'label' && key !== 'description')
+                .map(([key, value]) => (
                   <li key={key}>
                     <strong>{key}:</strong> {String(value)}
                   </li>
-                );
-              })}
+                ))}
             </ul>
           </div>
         </div>
