@@ -32,12 +32,30 @@ copy env.example .env
 cp env.example .env
 ```
 
-5. Run the server:
+5. Run the server (from the project root or `backend` directory):
 ```bash
-uvicorn main:app --reload --port 8000
+uvicorn backend.main:app --reload --port 8000
 ```
 
 The API will be available at `http://localhost:8000`
 
 API documentation will be available at `http://localhost:8000/docs`
+
+## Architecture Overview
+
+- **Domain layer** (`backend/domain`): Immutable dataclasses describing companies, relationships, and graph snapshots.
+- **Repositories** (`backend/repositories`): Data providers. The default `MockGraphRepository` generates deterministic synthetic data and can be swapped for a real data source.
+- **Services** (`backend/services`): Orchestrate repository calls and expose high-level operations the API consumes.
+- **API** (`backend/main.py`, `backend/api/schemas.py`): FastAPI routes and response schemas wired through dependency injection in `backend/dependencies.py`.
+
+To replace the mock data source, implement a new repository satisfying `GraphRepositoryProtocol` and update `get_graph_repository()` in `backend/dependencies.py` to return it. The service and API layers will continue working unchanged.
+
+## Testing
+
+Install the optional testing dependencies and run `pytest` from the `backend` directory:
+
+```bash
+pip install pytest httpx
+pytest
+```
 

@@ -4,6 +4,12 @@ export const API_BASE_URL =
 export const API_ROUTES = {
   graph: '/api/nodes',
   nodeDetail: (nodeId: string) => `/api/nodes/${encodeURIComponent(nodeId)}`,
+  createCompany: '/api/companies',
+  updateCompany: (companyId: string) => `/api/companies/${encodeURIComponent(companyId)}`,
+  deleteCompany: (companyId: string) => `/api/companies/${encodeURIComponent(companyId)}`,
+  createRelationship: '/api/relationships',
+  updateRelationship: (relationshipId: string) => `/api/relationships/${encodeURIComponent(relationshipId)}`,
+  deleteRelationship: (relationshipId: string) => `/api/relationships/${encodeURIComponent(relationshipId)}`,
 } as const;
 
 export const buildApiUrl = (path: string): string => {

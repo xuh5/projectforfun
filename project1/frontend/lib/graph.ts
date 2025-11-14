@@ -10,6 +10,7 @@ import {
 } from 'd3-force-3d';
 
 import type { GraphEdge, GraphNode, RawGraphResponse } from './types';
+import { FORCE_LAYOUT, POSITION_CONFIG } from './graphConfig';
 
 const DEFAULT_COMPANY_NAMES = [
   'NVIDIA',
@@ -78,8 +79,7 @@ export const normalizeCartesianPosition = (
     return null;
   }
 
-  const scale = 120;
-  return [(x ?? 0) / scale, (y ?? 0) / scale, (z ?? 0) / scale];
+  return [(x ?? 0) / POSITION_CONFIG.positionScale, (y ?? 0) / POSITION_CONFIG.positionScale, (z ?? 0) / POSITION_CONFIG.positionScale];
 };
 
 export const createInitialPosition = (fallbackScale: number): [number, number, number] => {
@@ -144,7 +144,7 @@ export const createGraphEdge = (edge: RawEdge, index: number): GraphEdge | null 
   };
 };
 
-const DEFAULT_LINK_STRENGTH = 0.15;
+// Default link strength is now defined in graphConfig.ts as FORCE_LAYOUT.defaultLinkStrength
 
 type SimulationNode = GraphNode & {
   x?: number;
@@ -168,13 +168,13 @@ type SimulationLink = {
 export const runForceDirectedLayout = (
   nodes: GraphNode[],
   edges: GraphEdge[],
-  iterations = 300
+  iterations: number = FORCE_LAYOUT.defaultIterations
 ): GraphNode[] => {
   if (!nodes.length || edges.length === 0) {
     return nodes;
   }
 
-  const scale = Math.cbrt(nodes.length) * 6;
+  const scale = Math.cbrt(nodes.length) * FORCE_LAYOUT.scaleMultiplier;
 
   const simulationNodes: SimulationNode[] = nodes.map((node) => {
     const initial = node.position ?? createInitialPosition(scale);
@@ -194,19 +194,19 @@ export const runForceDirectedLayout = (
 
   const linkForce = forceLink<SimulationNode, SimulationLink>(simulationLinks)
     .id((node: SimulationNode) => node.id)
-    .strength((link: SimulationLink) => link.strength ?? DEFAULT_LINK_STRENGTH)
-    .distance(() => 1.8);
+    .strength((link: SimulationLink) => link.strength ?? FORCE_LAYOUT.defaultLinkStrength)
+    .distance(() => FORCE_LAYOUT.linkDistance);
 
-  const baseCharge = -12 * Math.cbrt(nodes.length);
+  const baseCharge = FORCE_LAYOUT.chargeStrengthBase * Math.cbrt(nodes.length);
 
   const simulation = forceSimulation<SimulationNode>(simulationNodes)
     .force('link', linkForce)
     .force('charge', forceManyBody().strength(baseCharge))
     .force('center', forceCenter(0, 0, 0))
-    .force('collision', forceCollide<SimulationNode>(0.85).strength(0.95))
-    .force('x', forceX<SimulationNode>(0).strength(0.02))
-    .force('y', forceY<SimulationNode>(0).strength(0.02))
-    .force('z', forceZ<SimulationNode>(0).strength(0.02));
+    .force('collision', forceCollide<SimulationNode>(FORCE_LAYOUT.collisionRadius).strength(FORCE_LAYOUT.collisionStrength))
+    .force('x', forceX<SimulationNode>(0).strength(FORCE_LAYOUT.axisForceStrength))
+    .force('y', forceY<SimulationNode>(0).strength(FORCE_LAYOUT.axisForceStrength))
+    .force('z', forceZ<SimulationNode>(0).strength(FORCE_LAYOUT.axisForceStrength));
 
   simulation.alpha(1).alphaMin(0.001);
   simulation.stop();
@@ -279,7 +279,7 @@ export const generateSampleGraphData = (nodeCount = 18): { nodes: GraphNode[]; e
     }
   }
 
-  const positionedNodes = runForceDirectedLayout(sampleNodes, sampleEdges, 400);
+  const positionedNodes = runForceDirectedLayout(sampleNodes, sampleEdges, FORCE_LAYOUT.defaultIterations);
 
   return { nodes: positionedNodes, edges: sampleEdges };
 };

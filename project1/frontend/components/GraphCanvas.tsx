@@ -1,13 +1,24 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { Line, OrbitControls, Text, Billboard } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
-import { Vector3 } from 'three';
+import { Vector3, type Mesh } from 'three';
 import './GraphCanvas.css';
 
 import type { GraphNode, GraphEdge } from '../lib/types';
+import {
+  NODE_CONFIG,
+  NODE_MATERIAL,
+  NODE_HOVER,
+  NODE_LABEL,
+  EDGE_CONFIG,
+  CAMERA_CONFIG,
+  FOCUS_CAMERA,
+  LIGHTING_CONFIG,
+  ORBIT_CONTROLS,
+} from '../lib/graphConfig';
 
 export type { GraphNode, GraphEdge } from '../lib/types';
 
@@ -19,34 +30,67 @@ interface GraphCanvasProps {
 }
 
 function GraphNodeMesh({ node, onClick }: { node: GraphNode; onClick?: (nodeId: string) => void }) {
+  const [hovered, setHovered] = useState(false);
+  const meshRef = useRef<Mesh>(null);
+  const targetScaleRef = useRef(1.0);
+
+  // Update target scale when hover state changes
+  useEffect(() => {
+    targetScaleRef.current = hovered ? NODE_HOVER.scaleMultiplier : 1.0;
+  }, [hovered]);
+
+  // Animate scale on hover
+  useFrame(() => {
+    if (meshRef.current) {
+      const currentScale = meshRef.current.scale.x;
+      const targetScale = targetScaleRef.current;
+      const newScale = currentScale + (targetScale - currentScale) * NODE_HOVER.animationSpeed;
+      meshRef.current.scale.set(newScale, newScale, newScale);
+    }
+  });
+
   const handleClick = useCallback(() => {
     onClick?.(node.id);
   }, [node.id, onClick]);
 
+  const handlePointerEnter = useCallback(() => {
+    setHovered(true);
+  }, []);
+
+  const handlePointerLeave = useCallback(() => {
+    setHovered(false);
+  }, []);
+
   return (
     <group position={node.position}>
-      <mesh onClick={handleClick} castShadow>
-        <sphereGeometry args={[0.4, 32, 32]} />
+      <mesh
+        ref={meshRef}
+        onClick={handleClick}
+        onPointerEnter={handlePointerEnter}
+        onPointerLeave={handlePointerLeave}
+        castShadow
+      >
+        <sphereGeometry args={[NODE_CONFIG.radius, ...NODE_CONFIG.geometrySegments]} />
         <meshStandardMaterial
-          color={node.color ?? '#667eea'}
-          emissive={node.color ?? '#667eea'}
-          emissiveIntensity={0.25}
-          roughness={0.35}
-          metalness={0.25}
+          color={node.color ?? NODE_CONFIG.defaultColor}
+          emissive={node.color ?? NODE_CONFIG.defaultColor}
+          emissiveIntensity={hovered ? NODE_MATERIAL.emissiveIntensity.hovered : NODE_MATERIAL.emissiveIntensity.default}
+          roughness={NODE_MATERIAL.roughness}
+          metalness={NODE_MATERIAL.metalness}
         />
       </mesh>
-      <Billboard position={[0, 0.75, 0]} follow>
+      <Billboard position={NODE_LABEL.positionOffset} follow>
         <Text
-          fontSize={0.3}
-          color="#f8fafc"
-          anchorX="center"
+          fontSize={NODE_LABEL.fontSize}
+          color={NODE_LABEL.color}
+          anchorX={NODE_LABEL.textAlign}
           anchorY="bottom"
-          outlineWidth={0.015}
-          outlineColor="rgba(0, 0, 0, 0.75)"
-          maxWidth={2.5}
-          lineHeight={1.1}
-          textAlign="center"
-          depthOffset={-1}
+          outlineWidth={NODE_LABEL.outlineWidth}
+          outlineColor={NODE_LABEL.outlineColor}
+          maxWidth={NODE_LABEL.maxWidth}
+          lineHeight={NODE_LABEL.lineHeight}
+          textAlign={NODE_LABEL.textAlign}
+          depthOffset={NODE_LABEL.depthOffset}
         >
           {typeof node.data?.label === 'string' ? node.data.label : node.id}
         </Text>
@@ -65,11 +109,11 @@ function GraphEdgeLine({
   return (
     <Line
       points={[start, end]}
-      color="#9ca3af"
-      lineWidth={1.5}
+      color={EDGE_CONFIG.color}
+      lineWidth={EDGE_CONFIG.lineWidth}
       transparent
-      opacity={0.35}
-      depthWrite={false}
+      opacity={EDGE_CONFIG.opacity}
+      depthWrite={EDGE_CONFIG.depthWrite}
     />
   );
 }
@@ -159,12 +203,12 @@ export default function GraphCanvas({ nodes, edges, onNodeClick, focusNodeId }: 
         currentDirection.set(0, 0, 1);
       }
 
-      const distance = Math.max(radius * 2.5, 6);
+      const distance = Math.max(radius * CAMERA_CONFIG.fitDistanceMultiplier, CAMERA_CONFIG.minDistance);
       const newPosition = new Vector3().copy(currentDirection).multiplyScalar(distance).add(target);
 
       camera.position.copy(newPosition);
-      camera.near = Math.max(distance / 100, 0.1);
-      camera.far = Math.max(distance * 10, 50);
+      camera.near = Math.max(distance / CAMERA_CONFIG.nearPlaneRatio, CAMERA_CONFIG.minNearPlane);
+      camera.far = Math.max(distance * CAMERA_CONFIG.farPlaneRatio, CAMERA_CONFIG.minFarPlane);
       camera.updateProjectionMatrix();
       camera.lookAt(target);
 
@@ -199,15 +243,15 @@ export default function GraphCanvas({ nodes, edges, onNodeClick, focusNodeId }: 
         direction.normalize();
       }
 
-      const distance = Math.max((radiusHint ?? 3) * 0.3, 3);
+      const distance = Math.max((radiusHint ?? FOCUS_CAMERA.minDistance) * FOCUS_CAMERA.distanceMultiplier, FOCUS_CAMERA.minDistance);
       const newPosition = new Vector3()
         .copy(direction)
         .multiplyScalar(distance)
         .add(target);
 
       camera.position.copy(newPosition);
-      camera.near = Math.max(distance / 50, 0.1);
-      camera.far = Math.max(distance * 10, 50);
+      camera.near = Math.max(distance / FOCUS_CAMERA.nearPlaneRatio, CAMERA_CONFIG.minNearPlane);
+      camera.far = Math.max(distance * CAMERA_CONFIG.farPlaneRatio, CAMERA_CONFIG.minFarPlane);
       camera.updateProjectionMatrix();
       camera.lookAt(target);
 
@@ -222,12 +266,12 @@ export default function GraphCanvas({ nodes, edges, onNodeClick, focusNodeId }: 
 
   return (
     <div className="graph-container">
-      <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
-        <color attach="background" args={['#05060d']} />
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[5, 8, 5]} intensity={0.8} />
-        <directionalLight position={[-6, -4, -5]} intensity={0.35} />
-        <pointLight position={[0, 0, 0]} intensity={0.2} />
+      <Canvas camera={{ position: CAMERA_CONFIG.initialPosition, fov: CAMERA_CONFIG.fov }}>
+        <color attach="background" args={[LIGHTING_CONFIG.backgroundColor]} />
+        <ambientLight intensity={LIGHTING_CONFIG.ambientIntensity} />
+        <directionalLight position={LIGHTING_CONFIG.primaryDirectionalLight.position} intensity={LIGHTING_CONFIG.primaryDirectionalLight.intensity} />
+        <directionalLight position={LIGHTING_CONFIG.secondaryDirectionalLight.position} intensity={LIGHTING_CONFIG.secondaryDirectionalLight.intensity} />
+        <pointLight position={LIGHTING_CONFIG.pointLight.position} intensity={LIGHTING_CONFIG.pointLight.intensity} />
 
         {layoutBounds && <FitCamera center={layoutBounds.center} radius={layoutBounds.radius} />}
         {focusNode && (
@@ -242,9 +286,9 @@ export default function GraphCanvas({ nodes, edges, onNodeClick, focusNodeId }: 
 
         <OrbitControls
           ref={controlsRef}
-          enableDamping
-          dampingFactor={0.08}
-          rotateSpeed={0.6}
+          enableDamping={ORBIT_CONTROLS.enableDamping}
+          dampingFactor={ORBIT_CONTROLS.dampingFactor}
+          rotateSpeed={ORBIT_CONTROLS.rotateSpeed}
         />
       </Canvas>
     </div>

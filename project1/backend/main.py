@@ -1,10 +1,32 @@
-from fastapi import FastAPI, HTTPException
+from __future__ import annotations
+
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Dict, Any
-import math
+
+from backend.api.schemas import (
+    CompanyCreateRequest,
+    CompanyDetailResponse,
+    CompanyUpdateRequest,
+    GraphResponse,
+    HealthCheckResponse,
+    MessageResponse,
+    RelationshipCreateRequest,
+    RelationshipUpdateRequest,
+    SearchHit,
+    SearchResponse,
+)
+from backend.database import init_db
+from backend.dependencies import get_graph_repository, get_graph_service_from_db
+from backend.domain import Company, Relationship
+from backend.repositories import DatabaseGraphRepository, GraphRepositoryProtocol
+from backend.services import GraphServiceProtocol
 
 app = FastAPI(title="Project For Fun API")
+
+# Initialize database on startup
+@app.on_event("startup")
+async def startup_event():
+    init_db()
 
 # CORS middleware to allow requests from Next.js frontend
 app.add_middleware(
@@ -16,141 +38,197 @@ app.add_middleware(
 )
 
 
-class HealthCheck(BaseModel):
-    status: str
-    message: str
-
-
-class NodeData(BaseModel):
-    id: str
-    label: str
-    description: str = ""
-    x: float = 0
-    y: float = 0
-    color: str = "#667eea"
-    data: Dict[str, Any] = {}
-
-
-class EdgeData(BaseModel):
-    id: str
-    source: str
-    target: str
-
-
-class GraphResponse(BaseModel):
-    nodes: List[NodeData]
-    edges: List[EdgeData]
-
-
-# Sample data storage (in production, this would be a database)
-sample_nodes = []
-sample_edges = []
-
-
-def generate_sample_graph():
-    """Generate a sample graph with nodes in a circular pattern"""
-    nodes = []
-    edges = []
-    
-    # Company names and their details
-    companies = [
-        {"name": "NVIDIA", "sector": "Technology", "color": "#76b900"},
-        {"name": "Tesla", "sector": "Automotive", "color": "#e82127"},
-        {"name": "Apple", "sector": "Technology", "color": "#a6b1b7"},
-        {"name": "Microsoft", "sector": "Technology", "color": "#00a4ef"},
-        {"name": "Amazon", "sector": "E-commerce", "color": "#ff9900"},
-        {"name": "Google", "sector": "Technology", "color": "#4285f4"},
-        {"name": "Meta", "sector": "Technology", "color": "#0668e1"},
-        {"name": "Netflix", "sector": "Entertainment", "color": "#e50914"},
-        {"name": "AMD", "sector": "Technology", "color": "#ed1c24"},
-        {"name": "Intel", "sector": "Technology", "color": "#0071c5"},
-        {"name": "Salesforce", "sector": "Technology", "color": "#00a1e0"},
-        {"name": "Oracle", "sector": "Technology", "color": "#f80000"},
-    ]
-    
-    node_count = len(companies)
-    radius = 300
-    center_x = 400
-    center_y = 300
-
-    for i in range(node_count):
-        angle = (2 * math.pi * i) / node_count
-        x = center_x + radius * math.cos(angle)
-        y = center_y + radius * math.sin(angle)
-        
-        company = companies[i]
-
-        nodes.append(NodeData(
-            id=f"node-{i}",
-            label=company["name"],
-            description=f"{company['name']} - A leading company in the {company['sector']} sector.",
-            x=x,
-            y=y,
-            color=company["color"],
-            data={
-                "sector": company["sector"],
-                "value": (i + 1) * 10,
-                "category": ["A", "B", "C"][i % 3],
-                "connections": 2 if i == 0 or i == node_count - 1 else 2,
-            }
-        ))
-
-        # Create edges connecting to next node
-        if i < node_count - 1:
-            edges.append(EdgeData(
-                id=f"edge-{i}-{i + 1}",
-                source=f"node-{i}",
-                target=f"node-{i + 1}"
-            ))
-
-    # Connect last node to first
-    edges.append(EdgeData(
-        id=f"edge-{node_count - 1}-0",
-        source=f"node-{node_count - 1}",
-        target="node-0"
-    ))
-
-    return nodes, edges
-
-
-# Initialize sample data
-sample_nodes, sample_edges = generate_sample_graph()
-
-
 @app.get("/")
 async def root():
     return {"message": "Welcome to Project For Fun API"}
 
 
-@app.get("/api/health", response_model=HealthCheck)
+@app.get("/api/health", response_model=HealthCheckResponse)
 async def health_check():
-    return HealthCheck(status="ok", message="Backend is running")
+    return HealthCheckResponse(status="ok", message="Backend is running")
 
 
 @app.get("/api/nodes", response_model=GraphResponse)
-async def get_nodes():
-    """Get all nodes and edges for the graph"""
-    return GraphResponse(nodes=sample_nodes, edges=sample_edges)
+async def get_nodes(service: GraphServiceProtocol = Depends(get_graph_service_from_db)):
+    """Get all nodes and edges for the graph."""
+    snapshot = service.get_graph_snapshot()
+    return GraphResponse(nodes=snapshot.to_node_payload(), edges=snapshot.to_edge_payload())
 
 
-@app.get("/api/nodes/{node_id}")
-async def get_node(node_id: str):
-    """Get detailed information about a specific node"""
-    node = next((n for n in sample_nodes if n.id == node_id), None)
-    if not node:
+@app.get("/api/nodes/{node_id}", response_model=CompanyDetailResponse)
+async def get_node(node_id: str, service: GraphServiceProtocol = Depends(get_graph_service_from_db)):
+    """Get detailed information about a specific node."""
+    detail = service.get_company_detail(node_id)
+    if not detail:
         raise HTTPException(status_code=404, detail="Node not found")
 
-    return {
-        "id": node.id,
-        "data": {
-            "label": node.label,
-            "description": node.description,
-            **node.data
-        }
-    }
+    return CompanyDetailResponse(id=detail.id, data=dict(detail.data))
+
+
+@app.get("/api/search", response_model=SearchResponse)
+async def search_nodes(
+    query: str = Query("", min_length=1, description="Search term matching company label/description"),
+    limit: int = Query(5, ge=1, le=20),
+    service: GraphServiceProtocol = Depends(get_graph_service_from_db),
+):
+    """Search for companies matching a query string."""
+    matches = service.search_companies(query, limit=limit)
+    hits = [
+        SearchHit(
+            id=company.id,
+            label=company.label,
+            sector=company.sector,
+            score=company.metadata.get("score") if isinstance(company.metadata, dict) else None,
+        )
+        for company in matches
+    ]
+    return SearchResponse(query=query, results=hits)
 
 
 @app.get("/api/hello")
 async def hello():
     return {"message": "Hello from Python backend!"}
+
+
+# CRUD endpoints for Companies
+@app.post("/api/companies", response_model=CompanyDetailResponse, status_code=201)
+async def create_company(
+    company_data: CompanyCreateRequest,
+    repository: GraphRepositoryProtocol = Depends(get_graph_repository),
+):
+    """Create a new company."""
+    # Position is not stored - it's generated dynamically during graph layout
+    company = Company(
+        id=company_data.id,
+        label=company_data.label,
+        description=company_data.description,
+        sector=company_data.sector,
+        color=company_data.color,
+        metadata=company_data.metadata,
+        position=None,  # Position calculated dynamically, not stored
+    )
+
+    if not isinstance(repository, DatabaseGraphRepository):
+        raise HTTPException(status_code=500, detail="Database repository not available")
+
+    created = repository.create_company(company)
+    return CompanyDetailResponse(id=created.id, data=dict(created.to_detail().data))
+
+
+@app.put("/api/companies/{company_id}", response_model=CompanyDetailResponse)
+async def update_company(
+    company_id: str,
+    company_data: CompanyUpdateRequest,
+    repository: GraphRepositoryProtocol = Depends(get_graph_repository),
+):
+    """Update an existing company."""
+    if not isinstance(repository, DatabaseGraphRepository):
+        raise HTTPException(status_code=500, detail="Database repository not available")
+
+    updates: dict = {}
+    if company_data.label is not None:
+        updates["label"] = company_data.label
+    if company_data.description is not None:
+        updates["description"] = company_data.description
+    if company_data.sector is not None:
+        updates["sector"] = company_data.sector
+    if company_data.color is not None:
+        updates["color"] = company_data.color
+    if company_data.metadata is not None:
+        updates["metadata"] = company_data.metadata
+    # Position is not stored - it's generated dynamically during graph layout
+
+    updated = repository.update_company(company_id, **updates)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Company not found")
+
+    return CompanyDetailResponse(id=updated.id, data=dict(updated.to_detail().data))
+
+
+@app.delete("/api/companies/{company_id}", response_model=MessageResponse)
+async def delete_company(
+    company_id: str,
+    repository: GraphRepositoryProtocol = Depends(get_graph_repository),
+):
+    """Delete a company."""
+    if not isinstance(repository, DatabaseGraphRepository):
+        raise HTTPException(status_code=500, detail="Database repository not available")
+
+    deleted = repository.delete_company(company_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Company not found")
+
+    return MessageResponse(message=f"Company {company_id} deleted successfully")
+
+
+# CRUD endpoints for Relationships
+@app.post("/api/relationships", response_model=dict, status_code=201)
+async def create_relationship(
+    relationship_data: RelationshipCreateRequest,
+    repository: GraphRepositoryProtocol = Depends(get_graph_repository),
+):
+    """Create a new relationship."""
+    relationship = Relationship(
+        id=relationship_data.id,
+        source_id=relationship_data.source_id,
+        target_id=relationship_data.target_id,
+        strength=relationship_data.strength,
+    )
+
+    if not isinstance(repository, DatabaseGraphRepository):
+        raise HTTPException(status_code=500, detail="Database repository not available")
+
+    created = repository.create_relationship(relationship)
+    return {
+        "id": created.id,
+        "source_id": created.source_id,
+        "target_id": created.target_id,
+        "strength": created.strength,
+    }
+
+
+@app.put("/api/relationships/{relationship_id}", response_model=dict)
+async def update_relationship(
+    relationship_id: str,
+    relationship_data: RelationshipUpdateRequest,
+    repository: GraphRepositoryProtocol = Depends(get_graph_repository),
+):
+    """Update an existing relationship."""
+    if not isinstance(repository, DatabaseGraphRepository):
+        raise HTTPException(status_code=500, detail="Database repository not available")
+
+    updates: dict = {}
+    if relationship_data.source_id is not None:
+        updates["source_id"] = relationship_data.source_id
+    if relationship_data.target_id is not None:
+        updates["target_id"] = relationship_data.target_id
+    if relationship_data.strength is not None:
+        updates["strength"] = relationship_data.strength
+
+    updated = repository.update_relationship(relationship_id, **updates)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Relationship not found")
+
+    return {
+        "id": updated.id,
+        "source_id": updated.source_id,
+        "target_id": updated.target_id,
+        "strength": updated.strength,
+    }
+
+
+@app.delete("/api/relationships/{relationship_id}", response_model=MessageResponse)
+async def delete_relationship(
+    relationship_id: str,
+    repository: GraphRepositoryProtocol = Depends(get_graph_repository),
+):
+    """Delete a relationship."""
+    if not isinstance(repository, DatabaseGraphRepository):
+        raise HTTPException(status_code=500, detail="Database repository not available")
+
+    deleted = repository.delete_relationship(relationship_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Relationship not found")
+
+    return MessageResponse(message=f"Relationship {relationship_id} deleted successfully")
 
