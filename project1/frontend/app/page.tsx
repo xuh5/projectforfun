@@ -1,13 +1,15 @@
 'use client';
 
-import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 import GraphCanvas from '../components/GraphCanvas';
 import { useGraphData } from '../hooks/useGraphData';
+import { searchCompanies, type SearchHit } from '../lib/api';
 import type { GraphNode } from '../lib/types';
 
 const SEARCH_RESULT_LIMIT = 8;
+const SEARCH_DEBOUNCE_MS = 300;
 
 const getNodeLabel = (node: GraphNode): string => {
   const rawLabel = typeof node.data?.label === 'string' ? node.data.label.trim() : '';
@@ -15,22 +17,66 @@ const getNodeLabel = (node: GraphNode): string => {
 };
 
 export default function Home() {
-  const { nodes, edges, loading, error } = useGraphData();
+  const { nodes, edges, loading, error, refresh } = useGraphData();
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchHit[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
   const router = useRouter();
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Auto-refresh on mount if data was mutated (stored in sessionStorage)
+  useEffect(() => {
+    const shouldRefresh = sessionStorage.getItem('graphNeedsRefresh');
+    if (shouldRefresh === 'true') {
+      sessionStorage.removeItem('graphNeedsRefresh');
+      refresh();
+    }
+  }, [refresh]);
+
+  // Debounced backend search
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    const trimmedQuery = searchQuery.trim();
+    if (!trimmedQuery) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
+
+    setSearchLoading(true);
+    debounceTimerRef.current = setTimeout(async () => {
+      try {
+        const response = await searchCompanies(trimmedQuery, SEARCH_RESULT_LIMIT);
+        setSearchResults(response?.results || []);
+      } catch (err) {
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [searchQuery]);
+
+  // Convert search hits to matching nodes for compatibility
   const matchingNodes = useMemo<GraphNode[]>(() => {
-    const term = searchQuery.trim().toLowerCase();
-    if (!term) return [];
+    if (!searchQuery.trim() || searchResults.length === 0) return [];
 
-    return nodes
-      .filter((node) => {
-        const label = typeof node.data?.label === 'string' ? node.data.label : '';
-        return label.toLowerCase().includes(term) || node.id.toLowerCase().includes(term);
+    return searchResults
+      .map((hit) => {
+        const node = nodes.find((n) => n.id === hit.id);
+        return node || null;
       })
-      .slice(0, SEARCH_RESULT_LIMIT);
-  }, [nodes, searchQuery]);
+      .filter((node): node is GraphNode => node !== null);
+  }, [nodes, searchResults, searchQuery]);
 
   const resolveNodeLabel = useCallback(
     (nodeId: string): string | null => {
@@ -128,22 +174,31 @@ export default function Home() {
         {error ? <div className="search-hint" role="status">{error}</div> : null}
 
         {searchQuery.trim().length > 0 ? (
-          matchingNodes.length > 0 ? (
+          searchLoading ? (
+            <div className="search-empty">Searching...</div>
+          ) : searchResults.length > 0 ? (
             <ul className="search-results" role="listbox">
-              {matchingNodes.map((node) => {
-                const resolvedLabel = getNodeLabel(node);
+              {searchResults.map((hit) => {
+                const node = nodes.find((n) => n.id === hit.id);
+                const resolvedLabel = node ? getNodeLabel(node) : hit.label;
                 return (
-                  <li key={node.id}>
+                  <li key={hit.id}>
                     <button
                       type="button"
                       onClick={() => {
-                        setSearchQuery(resolvedLabel);
-                        setFocusNodeId(node.id);
+                        setSearchQuery(hit.label);
+                        if (node) {
+                          setFocusNodeId(hit.id);
+                        } else {
+                          // Navigate to company page even if not in graph yet
+                          navigateToNode(hit.id);
+                        }
                       }}
-                      aria-label={`Copy ${resolvedLabel} into search`}
+                      aria-label={`Select ${resolvedLabel}`}
                     >
-                      <span className="result-label">{resolvedLabel}</span>
-                      <span className="result-meta">{node.id}</span>
+                      <span className="result-label">{hit.label}</span>
+                      <span className="result-meta">{hit.id}</span>
+                      {hit.sector && <span className="result-meta"> • {hit.sector}</span>}
                     </button>
                   </li>
                 );

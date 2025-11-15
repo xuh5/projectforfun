@@ -51,6 +51,9 @@ export default function AddDataPage() {
       await createCompany(data);
       setSuccess(`Company "${data.label}" created successfully!`);
       
+      // Mark graph as needing refresh
+      sessionStorage.setItem('graphNeedsRefresh', 'true');
+      
       // Reset form
       setCompanyForm({
         id: '',
@@ -88,6 +91,9 @@ export default function AddDataPage() {
 
       await createRelationship(data);
       setSuccess(`Relationship "${data.id}" created successfully!`);
+      
+      // Mark graph as needing refresh
+      sessionStorage.setItem('graphNeedsRefresh', 'true');
       
       // Reset form
       setRelationshipForm({

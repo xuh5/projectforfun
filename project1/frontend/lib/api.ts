@@ -93,3 +93,123 @@ export const createRelationship = async (data: CreateRelationshipRequest): Promi
   }
 };
 
+export interface UpdateCompanyRequest {
+  label?: string;
+  description?: string;
+  sector?: string;
+  color?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface UpdateRelationshipRequest {
+  source_id?: string;
+  target_id?: string;
+  strength?: number;
+}
+
+export const updateCompany = async (companyId: string, data: UpdateCompanyRequest): Promise<CompanyDetail | null> => {
+  try {
+    const response = await fetch(buildApiUrl(API_ROUTES.updateCompany(companyId)), {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Failed to update company' }));
+      throw new Error(error.detail || 'Failed to update company');
+    }
+
+    return (await response.json()) as CompanyDetail;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deleteCompany = async (companyId: string): Promise<void> => {
+  try {
+    const response = await fetch(buildApiUrl(API_ROUTES.deleteCompany(companyId)), {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Failed to delete company' }));
+      throw new Error(error.detail || 'Failed to delete company');
+    }
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateRelationship = async (relationshipId: string, data: UpdateRelationshipRequest): Promise<{ id: string; source_id: string; target_id: string; strength?: number } | null> => {
+  try {
+    const response = await fetch(buildApiUrl(API_ROUTES.updateRelationship(relationshipId)), {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Failed to update relationship' }));
+      throw new Error(error.detail || 'Failed to update relationship');
+    }
+
+    return (await response.json()) as { id: string; source_id: string; target_id: string; strength?: number };
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deleteRelationship = async (relationshipId: string): Promise<void> => {
+  try {
+    const response = await fetch(buildApiUrl(API_ROUTES.deleteRelationship(relationshipId)), {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Failed to delete relationship' }));
+      throw new Error(error.detail || 'Failed to delete relationship');
+    }
+  } catch (error) {
+    throw error;
+  }
+};
+
+export interface SearchHit {
+  id: string;
+  label: string;
+  sector?: string;
+  score?: number;
+}
+
+export interface SearchResponse {
+  query: string;
+  results: SearchHit[];
+}
+
+export const searchCompanies = async (query: string, limit: number = 8): Promise<SearchResponse | null> => {
+  if (!query.trim()) {
+    return null;
+  }
+
+  try {
+    const params = new URLSearchParams({
+      query: query.trim(),
+      limit: limit.toString(),
+    });
+    const response = await fetch(buildApiUrl(`${API_ROUTES.search}?${params.toString()}`), withDefaultInit());
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return (await response.json()) as SearchResponse;
+  } catch {
+    return null;
+  }
+};
+

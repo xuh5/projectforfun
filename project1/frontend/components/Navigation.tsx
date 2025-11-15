@@ -36,6 +36,13 @@ export default function Navigation() {
           >
             Add Data
           </button>
+          <button
+            className={`nav-link ${isActive('/manage') ? 'active' : ''}`}
+            onClick={() => router.push('/manage')}
+            type="button"
+          >
+            Manage
+          </button>
         </div>
 
         <div className="nav-right">
