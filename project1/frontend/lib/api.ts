@@ -63,11 +63,14 @@ export const createCompany = async (data: CreateCompanyRequest): Promise<Company
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Failed to create company' }));
-      throw new Error(error.detail || 'Failed to create company');
+      throw new Error(error.detail || 'Failed to create company. Please check your connection and try again.');
     }
 
     return (await response.json()) as CompanyDetail;
   } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('Unable to connect to the server. Please check your internet connection.');
+    }
     throw error;
   }
 };
@@ -84,11 +87,14 @@ export const createRelationship = async (data: CreateRelationshipRequest): Promi
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Failed to create relationship' }));
-      throw new Error(error.detail || 'Failed to create relationship');
+      throw new Error(error.detail || 'Failed to create relationship. Please check your connection and try again.');
     }
 
     return (await response.json()) as CreateRelationshipRequest;
   } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('Unable to connect to the server. Please check your internet connection.');
+    }
     throw error;
   }
 };
@@ -119,11 +125,17 @@ export const updateCompany = async (companyId: string, data: UpdateCompanyReques
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Failed to update company' }));
-      throw new Error(error.detail || 'Failed to update company');
+      if (response.status === 404) {
+        throw new Error('Company not found. It may have been deleted.');
+      }
+      throw new Error(error.detail || 'Failed to update company. Please try again.');
     }
 
     return (await response.json()) as CompanyDetail;
   } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('Unable to connect to the server. Please check your internet connection.');
+    }
     throw error;
   }
 };
@@ -136,9 +148,15 @@ export const deleteCompany = async (companyId: string): Promise<void> => {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Failed to delete company' }));
-      throw new Error(error.detail || 'Failed to delete company');
+      if (response.status === 404) {
+        throw new Error('Company not found. It may have already been deleted.');
+      }
+      throw new Error(error.detail || 'Failed to delete company. Please try again.');
     }
   } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('Unable to connect to the server. Please check your internet connection.');
+    }
     throw error;
   }
 };
@@ -155,11 +173,17 @@ export const updateRelationship = async (relationshipId: string, data: UpdateRel
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Failed to update relationship' }));
-      throw new Error(error.detail || 'Failed to update relationship');
+      if (response.status === 404) {
+        throw new Error('Relationship not found. It may have been deleted.');
+      }
+      throw new Error(error.detail || 'Failed to update relationship. Please try again.');
     }
 
     return (await response.json()) as { id: string; source_id: string; target_id: string; strength?: number };
   } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('Unable to connect to the server. Please check your internet connection.');
+    }
     throw error;
   }
 };
@@ -172,9 +196,15 @@ export const deleteRelationship = async (relationshipId: string): Promise<void> 
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Failed to delete relationship' }));
-      throw new Error(error.detail || 'Failed to delete relationship');
+      if (response.status === 404) {
+        throw new Error('Relationship not found. It may have already been deleted.');
+      }
+      throw new Error(error.detail || 'Failed to delete relationship. Please try again.');
     }
   } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('Unable to connect to the server. Please check your internet connection.');
+    }
     throw error;
   }
 };

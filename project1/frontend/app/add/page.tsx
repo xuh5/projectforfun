@@ -3,15 +3,16 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createCompany, createRelationship, type CreateCompanyRequest, type CreateRelationshipRequest } from '../../lib/api';
+import { useToast } from '../../components/ToastProvider';
 
 type TabType = 'company' | 'relationship';
 
 export default function AddDataPage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<TabType>('company');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   // Company form state
   const [companyForm, setCompanyForm] = useState<CreateCompanyRequest>({
@@ -49,7 +50,7 @@ export default function AddDataPage() {
       };
 
       await createCompany(data);
-      setSuccess(`Company "${data.label}" created successfully!`);
+      showToast(`Company "${data.label}" created successfully!`, 'success');
       
       // Mark graph as needing refresh
       sessionStorage.setItem('graphNeedsRefresh', 'true');
@@ -69,7 +70,9 @@ export default function AddDataPage() {
         router.push('/');
       }, 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create company');
+      const message = err instanceof Error ? err.message : 'Failed to create company';
+      setError(message);
+      showToast(message, 'error');
     } finally {
       setLoading(false);
     }
@@ -90,7 +93,7 @@ export default function AddDataPage() {
       };
 
       await createRelationship(data);
-      setSuccess(`Relationship "${data.id}" created successfully!`);
+      showToast(`Relationship "${data.id}" created successfully!`, 'success');
       
       // Mark graph as needing refresh
       sessionStorage.setItem('graphNeedsRefresh', 'true');
@@ -108,7 +111,9 @@ export default function AddDataPage() {
         router.push('/');
       }, 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create relationship');
+      const message = err instanceof Error ? err.message : 'Failed to create relationship';
+      setError(message);
+      showToast(message, 'error');
     } finally {
       setLoading(false);
     }
@@ -134,7 +139,6 @@ export default function AddDataPage() {
             onClick={() => {
               setActiveTab('company');
               setError(null);
-              setSuccess(null);
             }}
             type="button"
           >
@@ -145,7 +149,6 @@ export default function AddDataPage() {
             onClick={() => {
               setActiveTab('relationship');
               setError(null);
-              setSuccess(null);
             }}
             type="button"
           >
@@ -156,12 +159,6 @@ export default function AddDataPage() {
         {error && (
           <div className="error-message" role="alert">
             {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="success-message" role="status">
-            {success}
           </div>
         )}
 

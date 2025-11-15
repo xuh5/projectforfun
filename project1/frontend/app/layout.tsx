@@ -1,5 +1,6 @@
 import './globals.css';
 import Navigation from '../components/Navigation';
+import { AppProviders } from '../components/AppProviders';
 import { Inter, Poppins } from 'next/font/google';
 
 const inter = Inter({
@@ -28,8 +29,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
       <body>
-        <Navigation />
-        {children}
+        <AppProviders>
+          <Navigation />
+          {children}
+        </AppProviders>
       </body>
     </html>
   );

@@ -13,6 +13,7 @@ import {
   type UpdateRelationshipRequest,
 } from '../../lib/api';
 import { hydrateGraphResponse } from '../../lib/graph';
+import { useToast } from '../../components/ToastProvider';
 import type { GraphEdge, GraphNode } from '../../lib/types';
 
 type TabType = 'company' | 'relationship';
@@ -34,11 +35,11 @@ interface EditRelationshipState {
 
 export default function ManagePage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<TabType>('company');
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [nodes, setNodes] = useState<GraphNode[]>([]);
   const [edges, setEdges] = useState<GraphEdge[]>([]);
   const [editingCompany, setEditingCompany] = useState<EditCompanyState | null>(null);
@@ -60,7 +61,9 @@ export default function ManagePage() {
         setEdges(graphData?.edges ?? []);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load data');
+      const message = err instanceof Error ? err.message : 'Failed to load data';
+      setError(message);
+      showToast(message, 'error');
     } finally {
       setFetching(false);
     }
@@ -72,7 +75,6 @@ export default function ManagePage() {
 
     setLoading(true);
     setError(null);
-    setSuccess(null);
 
     try {
       const data: UpdateCompanyRequest = {
@@ -83,12 +85,14 @@ export default function ManagePage() {
       };
 
       await updateCompany(editingCompany.id, data);
-      setSuccess(`Company "${data.label}" updated successfully!`);
+      showToast(`Company "${data.label}" updated successfully!`, 'success');
       setEditingCompany(null);
       sessionStorage.setItem('graphNeedsRefresh', 'true');
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update company');
+      const message = err instanceof Error ? err.message : 'Failed to update company';
+      setError(message);
+      showToast(message, 'error');
     } finally {
       setLoading(false);
     }
@@ -99,16 +103,17 @@ export default function ManagePage() {
 
     setLoading(true);
     setError(null);
-    setSuccess(null);
 
     try {
       await deleteCompany(deletingCompanyId);
-      setSuccess(`Company deleted successfully!`);
+      showToast('Company deleted successfully!', 'success');
       setDeletingCompanyId(null);
       sessionStorage.setItem('graphNeedsRefresh', 'true');
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete company');
+      const message = err instanceof Error ? err.message : 'Failed to delete company';
+      setError(message);
+      showToast(message, 'error');
       setDeletingCompanyId(null);
     } finally {
       setLoading(false);
@@ -121,7 +126,6 @@ export default function ManagePage() {
 
     setLoading(true);
     setError(null);
-    setSuccess(null);
 
     try {
       const data: UpdateRelationshipRequest = {
@@ -134,12 +138,14 @@ export default function ManagePage() {
       };
 
       await updateRelationship(editingRelationship.id, data);
-      setSuccess(`Relationship updated successfully!`);
+      showToast('Relationship updated successfully!', 'success');
       setEditingRelationship(null);
       sessionStorage.setItem('graphNeedsRefresh', 'true');
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update relationship');
+      const message = err instanceof Error ? err.message : 'Failed to update relationship';
+      setError(message);
+      showToast(message, 'error');
     } finally {
       setLoading(false);
     }
@@ -150,16 +156,17 @@ export default function ManagePage() {
 
     setLoading(true);
     setError(null);
-    setSuccess(null);
 
     try {
       await deleteRelationship(deletingRelationshipId);
-      setSuccess(`Relationship deleted successfully!`);
+      showToast('Relationship deleted successfully!', 'success');
       setDeletingRelationshipId(null);
       sessionStorage.setItem('graphNeedsRefresh', 'true');
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete relationship');
+      const message = err instanceof Error ? err.message : 'Failed to delete relationship';
+      setError(message);
+      showToast(message, 'error');
       setDeletingRelationshipId(null);
     } finally {
       setLoading(false);
@@ -187,7 +194,6 @@ export default function ManagePage() {
             onClick={() => {
               setActiveTab('company');
               setError(null);
-              setSuccess(null);
               setEditingCompany(null);
               setDeletingCompanyId(null);
             }}
@@ -200,7 +206,6 @@ export default function ManagePage() {
             onClick={() => {
               setActiveTab('relationship');
               setError(null);
-              setSuccess(null);
               setEditingRelationship(null);
               setDeletingRelationshipId(null);
             }}
@@ -213,12 +218,6 @@ export default function ManagePage() {
         {error && (
           <div className="error-message" role="alert">
             {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="success-message" role="status">
-            {success}
           </div>
         )}
 
