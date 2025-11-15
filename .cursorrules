@@ -1,0 +1,60 @@
+# AI Agent Instructions
+
+## CRITICAL: Read Project Structure Documentation First
+
+**Before starting any task, you MUST:**
+1. Read `AI_PROJECT_STRUCTURE.md` (if it exists) to understand the project structure
+2. This file contains a map of all files, their purposes, parameters, outputs, and when to read them
+3. Use it to identify which files are relevant for your task - do NOT read entire projects unnecessarily
+4. If `AI_PROJECT_STRUCTURE.md` doesn't exist, analyze the codebase structure first to understand it
+
+## File Update Protocol
+
+**After completing any task that modifies code structure, you MUST update `AI_PROJECT_STRUCTURE.md`:**
+
+### When to Update:
+- ✅ Added new file with significant functionality
+- ✅ Changed function/class signatures (parameters, return types)
+- ✅ Modified API endpoints or request/response schemas
+- ✅ Updated database models or schemas
+- ✅ Added/removed dependencies between files
+- ✅ Changed architectural patterns
+- ✅ Created new pages/components with important functionality
+
+### What to Document:
+- New files and their purpose
+- Modified functions with updated parameters/outputs
+- Changed dependencies
+- Updated architecture patterns
+- New API endpoints or routes
+
+### When NOT to Update:
+- ❌ Simple bug fixes (typos, logic errors)
+- ❌ Style/formatting changes
+- ❌ Comments/documentation updates
+- ❌ Configuration changes without structural impact
+
+## Code Structure Understanding
+
+Use `AI_PROJECT_STRUCTURE.md` to:
+- Quickly identify which files to read for specific tasks
+- Understand function signatures without reading source code
+- Know dependencies between files
+- Follow the "Quick Reference" section for common tasks
+
+## Task Workflow
+
+1. **Read** `AI_PROJECT_STRUCTURE.md` first (or analyze structure if it doesn't exist)
+2. **Identify** relevant files from the document
+3. **Read only** the files needed for your task
+4. **Make changes**
+5. **Update** `AI_PROJECT_STRUCTURE.md` if structure changed (see "When to Update" above)
+6. **Commit** changes together (code + documentation updates)
+
+## Efficiency Rules
+
+- Do NOT read entire projects when you can use the structure documentation
+- Do NOT read every file in a directory - use the documentation to target specific files
+- DO use the "Quick Reference" section to find which files relate to your task
+- DO update the documentation as part of your task completion
+
