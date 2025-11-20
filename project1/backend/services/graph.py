@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Iterable, Optional, Protocol, Sequence
 
-from backend.domain import Company, CompanyDetail, GraphSnapshot
+from backend.domain import Node, NodeDetail, GraphSnapshot
 from backend.repositories import GraphRepositoryProtocol
 
 
@@ -12,10 +12,10 @@ class GraphServiceProtocol(Protocol):
     def get_graph_snapshot(self) -> GraphSnapshot:
         ...
 
-    def get_company_detail(self, company_id: str) -> Optional[CompanyDetail]:
+    def get_node_detail(self, node_id: str) -> Optional[NodeDetail]:
         ...
 
-    def search_companies(self, query: str, limit: int = 5) -> Sequence[Company]:
+    def search_nodes(self, query: str, limit: int = 5) -> Sequence[Node]:
         ...
 
 
@@ -28,27 +28,28 @@ class GraphService(GraphServiceProtocol):
     def get_graph_snapshot(self) -> GraphSnapshot:
         return self._repository.get_graph_snapshot()
 
-    def get_company_detail(self, company_id: str) -> Optional[CompanyDetail]:
-        company = self._repository.get_company(company_id)
-        if not company:
+    def get_node_detail(self, node_id: str) -> Optional[NodeDetail]:
+        node = self._repository.get_node(node_id)
+        if not node:
             return None
-        return company.to_detail()
+        return node.to_detail()
 
-    def search_companies(self, query: str, limit: int = 5) -> Sequence[Company]:
+    def search_nodes(self, query: str, limit: int = 5) -> Sequence[Node]:
         normalized = query.strip().lower()
         if not normalized:
             return ()
 
-        matches: list[Company] = []
-        for company in self._repository.list_companies():
+        matches: list[Node] = []
+        for node in self._repository.list_nodes():
             haystacks: Iterable[str] = (
-                company.label,
-                company.description,
-                company.sector or "",
+                node.label,
+                node.description,
+                node.sector or "",
+                node.type or "",
             )
             if any(normalized in value.lower() for value in haystacks if value):
-                matches.append(company)
-        matches.sort(key=lambda company: company.metadata.get("score", 0), reverse=True)
+                matches.append(node)
+        matches.sort(key=lambda node: node.metadata.get("score", 0), reverse=True)
         return matches[:limit]
 
 

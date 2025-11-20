@@ -3,13 +3,17 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, Iterable, List, Mapping, Optional, Tuple
 
+# ⚠️ 重要：Node 字段定义应该与 node_schema.py 保持一致！
+# 修改字段时，请同时更新 node_schema.py 和这里的定义
+from .node_schema import NODE_FIELDS, COMPUTED_FIELDS
+
 ScalarMap = Mapping[str, object]
 MutableScalarMap = Dict[str, object]
 
 
 @dataclass(frozen=True)
 class Relationship:
-    """A directional edge between two companies."""
+    """A directional edge between two nodes."""
 
     id: str
     source_id: str
@@ -18,10 +22,16 @@ class Relationship:
 
 
 @dataclass(frozen=True)
-class Company:
-    """Core company entity used across the domain."""
+class Node:
+    """
+    Core node entity used across the domain. Can represent companies or other entity types.
+    
+    ⚠️ 字段定义来源：backend/domain/node_schema.py
+    添加新字段时，请先在 node_schema.py 中定义，然后在这里添加。
+    """
 
     id: str
+    type: str  # e.g., "company", "person", "project", etc.
     label: str
     description: str
     sector: Optional[str] = None
@@ -29,20 +39,22 @@ class Company:
     metadata: ScalarMap = field(default_factory=dict)
     position: Optional[Tuple[float, float, float]] = None
 
-    def to_detail(self) -> "CompanyDetail":
+    def to_detail(self) -> "NodeDetail":
         """Materialize the frontend-facing detail payload."""
         payload: MutableScalarMap = dict(self.metadata)
-        payload.setdefault("label", self.label)
-        payload.setdefault("description", self.description)
-        if self.sector:
-            payload.setdefault("sector", self.sector)
-        if self.color:
-            payload.setdefault("color", self.color)
-        return CompanyDetail(id=self.id, data=payload)
+        # 从 schema 定义中获取需要包含在 detail 中的字段
+        for field_def in NODE_FIELDS:
+            if field_def.in_frontend:
+                value = getattr(self, field_def.name, None)
+                if value is not None:
+                    payload.setdefault(field_def.name, value)
+        # 确保 type 总是包含
+        payload.setdefault("type", self.type)
+        return NodeDetail(id=self.id, data=payload)
 
 
 @dataclass(frozen=True)
-class CompanyDetail:
+class NodeDetail:
     """Detailed representation consumed by the frontend."""
 
     id: str
@@ -53,24 +65,25 @@ class CompanyDetail:
 class GraphSnapshot:
     """Immutable snapshot of the relationship graph."""
 
-    companies: Iterable[Company]
+    nodes: Iterable[Node]
     relationships: Iterable[Relationship]
 
     def to_node_payload(self) -> List[Mapping[str, object]]:
         nodes: List[MutableScalarMap] = []
-        for company in self.companies:
+        for node in self.nodes:
             node_payload: MutableScalarMap = {
-                "id": company.id,
+                "id": node.id,
                 "data": {
-                    "label": company.label,
-                    "description": company.description,
-                    **company.metadata,
+                    "label": node.label,
+                    "description": node.description,
+                    "type": node.type,
+                    **node.metadata,
                 },
             }
-            if company.color:
-                node_payload.setdefault("color", company.color)
-            if company.position:
-                x, y, z = company.position
+            if node.color:
+                node_payload.setdefault("color", node.color)
+            if node.position:
+                x, y, z = node.position
                 node_payload["position"] = {"x": x, "y": y, "z": z}
             nodes.append(node_payload)
         return nodes

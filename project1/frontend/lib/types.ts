@@ -1,10 +1,11 @@
 export type ScalarRecord = Record<string, unknown>;
 
-export interface CompanyDetail {
+export interface NodeDetail {
   id: string;
   data: {
     label: string;
     description?: string;
+    type?: string; // e.g., "company", "person", "project", etc.
     sector?: string;
     category?: string;
     value?: number;
@@ -12,9 +13,13 @@ export interface CompanyDetail {
   };
 }
 
+// Backward compatibility alias
+export type CompanyDetail = NodeDetail;
+
 export interface GraphNodeData {
   label: string;
   description?: string;
+  type?: string; // e.g., "company", "person", "project", etc.
   [key: string]: unknown;
 }
 

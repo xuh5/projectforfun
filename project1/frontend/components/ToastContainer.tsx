@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import Toast, { type Toast as ToastType } from './Toast';
 import './ToastContainer.css';
 
-export const useToast = () => {
+export const useToastState = () => {
   const [toasts, setToasts] = useState<ToastType[]>([]);
 
   const showToast = useCallback((message: string, type: ToastType['type'] = 'info') => {

@@ -11,6 +11,7 @@ import {
 
 import type { GraphEdge, GraphNode, RawGraphResponse } from './types';
 import { FORCE_LAYOUT, POSITION_CONFIG } from './graphConfig';
+import { SECTOR_SAMPLE_LABELS } from './constants';
 
 const DEFAULT_COMPANY_NAMES = [
   'NVIDIA',
@@ -44,7 +45,7 @@ const DEFAULT_COMPANY_NAMES = [
 ] as const;
 
 const SAMPLE_PALETTE = ['#667eea', '#764ba2', '#f093fb', '#4f46e5', '#22d3ee', '#f472b6'] as const;
-const SAMPLE_SECTORS = ['AI', 'Automotive', 'Consumer', 'Enterprise', 'Cloud', 'Semiconductors'] as const;
+const SAMPLE_SECTORS = SECTOR_SAMPLE_LABELS;
 
 type RawNode = {
   id?: unknown;
@@ -102,7 +103,7 @@ export const createGraphNode = (node: RawNode, index: number, total: number): Gr
       ? node.description
       : typeof rawData.description === 'string'
         ? rawData.description
-        : `${resolvedLabel} is a key company within the network.`;
+        : `${resolvedLabel} is a key node within the network.`;
 
   const colorCandidate =
     typeof node?.color === 'string'
@@ -110,6 +111,9 @@ export const createGraphNode = (node: RawNode, index: number, total: number): Gr
       : typeof rawData.color === 'string'
         ? rawData.color
         : undefined;
+
+  // Extract type from data, defaulting to "company" for backward compatibility
+  const nodeType = typeof rawData.type === 'string' ? rawData.type : 'company';
 
   return {
     id: String(node?.id ?? `node-${index}`),
@@ -119,6 +123,7 @@ export const createGraphNode = (node: RawNode, index: number, total: number): Gr
       ...rawData,
       label: resolvedLabel,
       description,
+      type: nodeType,
     },
   };
 };

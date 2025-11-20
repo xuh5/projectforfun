@@ -1,10 +1,40 @@
 import { buildApiUrl, API_ROUTES } from './config';
-import type { CompanyDetail, RawGraphResponse } from './types';
+import type { NodeDetail, RawGraphResponse } from './types';
 
 const withDefaultInit = (init?: RequestInit): RequestInit => ({
   cache: 'no-store',
   ...init,
 });
+
+const handleApiError = (error: unknown, defaultMessage: string): Error => {
+  if (error instanceof TypeError && error.message.includes('fetch')) {
+    return new Error('Unable to connect to the server. Please check your internet connection.');
+  }
+  if (error instanceof Error) {
+    return error;
+  }
+  return new Error(defaultMessage);
+};
+
+const fetchWithErrorHandling = async <T>(
+  url: string,
+  options: RequestInit = {},
+  errorMessage: string
+): Promise<T> => {
+  try {
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: errorMessage }));
+      const statusMessage = response.status === 404 
+        ? error.detail || 'Resource not found. It may have been deleted.'
+        : error.detail || errorMessage;
+      throw new Error(statusMessage);
+    }
+    return (await response.json()) as T;
+  } catch (error) {
+    throw handleApiError(error, errorMessage);
+  }
+};
 
 export const fetchGraphData = async (init?: RequestInit): Promise<RawGraphResponse | null> => {
   try {
@@ -19,30 +49,37 @@ export const fetchGraphData = async (init?: RequestInit): Promise<RawGraphRespon
   }
 };
 
-export const fetchCompanyDetail = async (
+export const fetchNodeDetail = async (
   nodeId: string,
   init?: RequestInit
-): Promise<CompanyDetail | null> => {
+): Promise<NodeDetail | null> => {
   try {
     const response = await fetch(buildApiUrl(API_ROUTES.nodeDetail(nodeId)), withDefaultInit(init));
     if (!response.ok) {
       return null;
     }
 
-    return (await response.json()) as CompanyDetail;
+    return (await response.json()) as NodeDetail;
   } catch {
     return null;
   }
 };
 
-export interface CreateCompanyRequest {
+// Backward compatibility alias
+export const fetchCompanyDetail = fetchNodeDetail;
+
+export interface CreateNodeRequest {
   id: string;
+  type?: string; // e.g., "company", "person", "project", etc. Defaults to "company"
   label: string;
   description: string;
   sector?: string;
   color?: string;
   metadata?: Record<string, unknown>;
 }
+
+// Backward compatibility alias
+export type CreateCompanyRequest = CreateNodeRequest;
 
 export interface CreateRelationshipRequest {
   id: string;
@@ -51,55 +88,45 @@ export interface CreateRelationshipRequest {
   strength?: number;
 }
 
-export const createCompany = async (data: CreateCompanyRequest): Promise<CompanyDetail | null> => {
-  try {
-    const response = await fetch(buildApiUrl(API_ROUTES.createCompany), {
+export const createNode = async (data: CreateNodeRequest): Promise<NodeDetail | null> => {
+  // Default type to "company" if not provided for backward compatibility
+  const requestData = {
+    ...data,
+    type: data.type || 'company',
+  };
+
+  return fetchWithErrorHandling<NodeDetail>(
+    buildApiUrl(API_ROUTES.createNode),
+    {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Failed to create company' }));
-      throw new Error(error.detail || 'Failed to create company. Please check your connection and try again.');
-    }
-
-    return (await response.json()) as CompanyDetail;
-  } catch (error) {
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error('Unable to connect to the server. Please check your internet connection.');
-    }
-    throw error;
-  }
+      body: JSON.stringify(requestData),
+    },
+    'Failed to create node. Please check your connection and try again.'
+  );
 };
+
+// Backward compatibility alias
+export const createCompany = createNode;
 
 export const createRelationship = async (data: CreateRelationshipRequest): Promise<CreateRelationshipRequest | null> => {
-  try {
-    const response = await fetch(buildApiUrl(API_ROUTES.createRelationship), {
+  return fetchWithErrorHandling<CreateRelationshipRequest>(
+    buildApiUrl(API_ROUTES.createRelationship),
+    {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Failed to create relationship' }));
-      throw new Error(error.detail || 'Failed to create relationship. Please check your connection and try again.');
-    }
-
-    return (await response.json()) as CreateRelationshipRequest;
-  } catch (error) {
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error('Unable to connect to the server. Please check your internet connection.');
-    }
-    throw error;
-  }
+    },
+    'Failed to create relationship. Please check your connection and try again.'
+  );
 };
 
-export interface UpdateCompanyRequest {
+export interface UpdateNodeRequest {
+  type?: string;
   label?: string;
   description?: string;
   sector?: string;
@@ -107,111 +134,69 @@ export interface UpdateCompanyRequest {
   metadata?: Record<string, unknown>;
 }
 
+// Backward compatibility alias
+export type UpdateCompanyRequest = UpdateNodeRequest;
+
 export interface UpdateRelationshipRequest {
   source_id?: string;
   target_id?: string;
   strength?: number;
 }
 
-export const updateCompany = async (companyId: string, data: UpdateCompanyRequest): Promise<CompanyDetail | null> => {
-  try {
-    const response = await fetch(buildApiUrl(API_ROUTES.updateCompany(companyId)), {
+export const updateNode = async (nodeId: string, data: UpdateNodeRequest): Promise<NodeDetail | null> => {
+  return fetchWithErrorHandling<NodeDetail>(
+    buildApiUrl(API_ROUTES.updateNode(nodeId)),
+    {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Failed to update company' }));
-      if (response.status === 404) {
-        throw new Error('Company not found. It may have been deleted.');
-      }
-      throw new Error(error.detail || 'Failed to update company. Please try again.');
-    }
-
-    return (await response.json()) as CompanyDetail;
-  } catch (error) {
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error('Unable to connect to the server. Please check your internet connection.');
-    }
-    throw error;
-  }
+    },
+    'Failed to update node. Please try again.'
+  );
 };
 
-export const deleteCompany = async (companyId: string): Promise<void> => {
-  try {
-    const response = await fetch(buildApiUrl(API_ROUTES.deleteCompany(companyId)), {
-      method: 'DELETE',
-    });
+// Backward compatibility alias
+export const updateCompany = updateNode;
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Failed to delete company' }));
-      if (response.status === 404) {
-        throw new Error('Company not found. It may have already been deleted.');
-      }
-      throw new Error(error.detail || 'Failed to delete company. Please try again.');
-    }
-  } catch (error) {
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error('Unable to connect to the server. Please check your internet connection.');
-    }
-    throw error;
-  }
+export const deleteNode = async (nodeId: string): Promise<void> => {
+  await fetchWithErrorHandling<void>(
+    buildApiUrl(API_ROUTES.deleteNode(nodeId)),
+    { method: 'DELETE' },
+    'Failed to delete node. Please try again.'
+  );
 };
+
+// Backward compatibility alias
+export const deleteCompany = deleteNode;
 
 export const updateRelationship = async (relationshipId: string, data: UpdateRelationshipRequest): Promise<{ id: string; source_id: string; target_id: string; strength?: number } | null> => {
-  try {
-    const response = await fetch(buildApiUrl(API_ROUTES.updateRelationship(relationshipId)), {
+  return fetchWithErrorHandling<{ id: string; source_id: string; target_id: string; strength?: number }>(
+    buildApiUrl(API_ROUTES.updateRelationship(relationshipId)),
+    {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Failed to update relationship' }));
-      if (response.status === 404) {
-        throw new Error('Relationship not found. It may have been deleted.');
-      }
-      throw new Error(error.detail || 'Failed to update relationship. Please try again.');
-    }
-
-    return (await response.json()) as { id: string; source_id: string; target_id: string; strength?: number };
-  } catch (error) {
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error('Unable to connect to the server. Please check your internet connection.');
-    }
-    throw error;
-  }
+    },
+    'Failed to update relationship. Please try again.'
+  );
 };
 
 export const deleteRelationship = async (relationshipId: string): Promise<void> => {
-  try {
-    const response = await fetch(buildApiUrl(API_ROUTES.deleteRelationship(relationshipId)), {
-      method: 'DELETE',
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Failed to delete relationship' }));
-      if (response.status === 404) {
-        throw new Error('Relationship not found. It may have already been deleted.');
-      }
-      throw new Error(error.detail || 'Failed to delete relationship. Please try again.');
-    }
-  } catch (error) {
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error('Unable to connect to the server. Please check your internet connection.');
-    }
-    throw error;
-  }
+  await fetchWithErrorHandling<void>(
+    buildApiUrl(API_ROUTES.deleteRelationship(relationshipId)),
+    { method: 'DELETE' },
+    'Failed to delete relationship. Please try again.'
+  );
 };
 
 export interface SearchHit {
   id: string;
   label: string;
+  type?: string;
   sector?: string;
   score?: number;
 }

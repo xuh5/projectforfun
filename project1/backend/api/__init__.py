@@ -1,14 +1,14 @@
 """API schemas for FastAPI responses."""
 
 from .schemas import (
-    CompanyDetailResponse,
+    NodeDetailResponse,
     GraphResponse,
     HealthCheckResponse,
     SearchResponse,
 )
 
 __all__ = [
-    "CompanyDetailResponse",
+    "NodeDetailResponse",
     "GraphResponse",
     "HealthCheckResponse",
     "SearchResponse",

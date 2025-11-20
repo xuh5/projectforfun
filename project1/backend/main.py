@@ -4,9 +4,9 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.schemas import (
-    CompanyCreateRequest,
-    CompanyDetailResponse,
-    CompanyUpdateRequest,
+    NodeCreateRequest,
+    NodeDetailResponse,
+    NodeUpdateRequest,
     GraphResponse,
     HealthCheckResponse,
     MessageResponse,
@@ -16,8 +16,8 @@ from backend.api.schemas import (
     SearchResponse,
 )
 from backend.database import init_db
-from backend.dependencies import get_graph_repository, get_graph_service_from_db
-from backend.domain import Company, Relationship
+from backend.dependencies import get_database_repository, get_graph_repository, get_graph_service_from_db
+from backend.domain import Node, Relationship
 from backend.repositories import DatabaseGraphRepository, GraphRepositoryProtocol
 from backend.services import GraphServiceProtocol
 
@@ -55,32 +55,33 @@ async def get_nodes(service: GraphServiceProtocol = Depends(get_graph_service_fr
     return GraphResponse(nodes=snapshot.to_node_payload(), edges=snapshot.to_edge_payload())
 
 
-@app.get("/api/nodes/{node_id}", response_model=CompanyDetailResponse)
+@app.get("/api/nodes/{node_id}", response_model=NodeDetailResponse)
 async def get_node(node_id: str, service: GraphServiceProtocol = Depends(get_graph_service_from_db)):
     """Get detailed information about a specific node."""
-    detail = service.get_company_detail(node_id)
+    detail = service.get_node_detail(node_id)
     if not detail:
         raise HTTPException(status_code=404, detail="Node not found")
 
-    return CompanyDetailResponse(id=detail.id, data=dict(detail.data))
+    return NodeDetailResponse(id=detail.id, data=dict(detail.data))
 
 
 @app.get("/api/search", response_model=SearchResponse)
 async def search_nodes(
-    query: str = Query("", min_length=1, description="Search term matching company label/description"),
+    query: str = Query("", min_length=1, description="Search term matching node label/description"),
     limit: int = Query(5, ge=1, le=20),
     service: GraphServiceProtocol = Depends(get_graph_service_from_db),
 ):
-    """Search for companies matching a query string."""
-    matches = service.search_companies(query, limit=limit)
+    """Search for nodes matching a query string."""
+    matches = service.search_nodes(query, limit=limit)
     hits = [
         SearchHit(
-            id=company.id,
-            label=company.label,
-            sector=company.sector,
-            score=company.metadata.get("score") if isinstance(company.metadata, dict) else None,
+            id=node.id,
+            label=node.label,
+            type=node.type,
+            sector=node.sector,
+            score=node.metadata.get("score") if isinstance(node.metadata, dict) else None,
         )
-        for company in matches
+        for node in matches
     ]
     return SearchResponse(query=query, results=hits)
 
@@ -90,82 +91,76 @@ async def hello():
     return {"message": "Hello from Python backend!"}
 
 
-# CRUD endpoints for Companies
-@app.post("/api/companies", response_model=CompanyDetailResponse, status_code=201)
-async def create_company(
-    company_data: CompanyCreateRequest,
-    repository: GraphRepositoryProtocol = Depends(get_graph_repository),
+# CRUD endpoints for Nodes
+@app.post("/api/nodes", response_model=NodeDetailResponse, status_code=201)
+async def create_node(
+    node_data: NodeCreateRequest,
+    repository: DatabaseGraphRepository = Depends(get_database_repository),
 ):
-    """Create a new company."""
+    """Create a new node."""
     # Position is not stored - it's generated dynamically during graph layout
-    company = Company(
-        id=company_data.id,
-        label=company_data.label,
-        description=company_data.description,
-        sector=company_data.sector,
-        color=company_data.color,
-        metadata=company_data.metadata,
+    node = Node(
+        id=node_data.id,
+        type=node_data.type,
+        label=node_data.label,
+        description=node_data.description,
+        sector=node_data.sector,
+        color=node_data.color,
+        metadata=node_data.metadata,
         position=None,  # Position calculated dynamically, not stored
     )
 
-    if not isinstance(repository, DatabaseGraphRepository):
-        raise HTTPException(status_code=500, detail="Database repository not available")
-
-    created = repository.create_company(company)
-    return CompanyDetailResponse(id=created.id, data=dict(created.to_detail().data))
+    created = repository.create_node(node)
+    return NodeDetailResponse(id=created.id, data=dict(created.to_detail().data))
 
 
-@app.put("/api/companies/{company_id}", response_model=CompanyDetailResponse)
-async def update_company(
-    company_id: str,
-    company_data: CompanyUpdateRequest,
-    repository: GraphRepositoryProtocol = Depends(get_graph_repository),
+@app.put("/api/nodes/{node_id}", response_model=NodeDetailResponse)
+async def update_node(
+    node_id: str,
+    node_data: NodeUpdateRequest,
+    repository: DatabaseGraphRepository = Depends(get_database_repository),
 ):
-    """Update an existing company."""
-    if not isinstance(repository, DatabaseGraphRepository):
-        raise HTTPException(status_code=500, detail="Database repository not available")
-
+    """Update an existing node."""
     updates: dict = {}
-    if company_data.label is not None:
-        updates["label"] = company_data.label
-    if company_data.description is not None:
-        updates["description"] = company_data.description
-    if company_data.sector is not None:
-        updates["sector"] = company_data.sector
-    if company_data.color is not None:
-        updates["color"] = company_data.color
-    if company_data.metadata is not None:
-        updates["metadata"] = company_data.metadata
+    if node_data.type is not None:
+        updates["type"] = node_data.type
+    if node_data.label is not None:
+        updates["label"] = node_data.label
+    if node_data.description is not None:
+        updates["description"] = node_data.description
+    if node_data.sector is not None:
+        updates["sector"] = node_data.sector
+    if node_data.color is not None:
+        updates["color"] = node_data.color
+    if node_data.metadata is not None:
+        updates["metadata"] = node_data.metadata
     # Position is not stored - it's generated dynamically during graph layout
 
-    updated = repository.update_company(company_id, **updates)
+    updated = repository.update_node(node_id, **updates)
     if not updated:
-        raise HTTPException(status_code=404, detail="Company not found")
+        raise HTTPException(status_code=404, detail="Node not found")
 
-    return CompanyDetailResponse(id=updated.id, data=dict(updated.to_detail().data))
+    return NodeDetailResponse(id=updated.id, data=dict(updated.to_detail().data))
 
 
-@app.delete("/api/companies/{company_id}", response_model=MessageResponse)
-async def delete_company(
-    company_id: str,
-    repository: GraphRepositoryProtocol = Depends(get_graph_repository),
+@app.delete("/api/nodes/{node_id}", response_model=MessageResponse)
+async def delete_node(
+    node_id: str,
+    repository: DatabaseGraphRepository = Depends(get_database_repository),
 ):
-    """Delete a company."""
-    if not isinstance(repository, DatabaseGraphRepository):
-        raise HTTPException(status_code=500, detail="Database repository not available")
-
-    deleted = repository.delete_company(company_id)
+    """Delete a node."""
+    deleted = repository.delete_node(node_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Company not found")
+        raise HTTPException(status_code=404, detail="Node not found")
 
-    return MessageResponse(message=f"Company {company_id} deleted successfully")
+    return MessageResponse(message=f"Node {node_id} deleted successfully")
 
 
 # CRUD endpoints for Relationships
 @app.post("/api/relationships", response_model=dict, status_code=201)
 async def create_relationship(
     relationship_data: RelationshipCreateRequest,
-    repository: GraphRepositoryProtocol = Depends(get_graph_repository),
+    repository: DatabaseGraphRepository = Depends(get_database_repository),
 ):
     """Create a new relationship."""
     relationship = Relationship(
@@ -174,9 +169,6 @@ async def create_relationship(
         target_id=relationship_data.target_id,
         strength=relationship_data.strength,
     )
-
-    if not isinstance(repository, DatabaseGraphRepository):
-        raise HTTPException(status_code=500, detail="Database repository not available")
 
     created = repository.create_relationship(relationship)
     return {
@@ -191,12 +183,9 @@ async def create_relationship(
 async def update_relationship(
     relationship_id: str,
     relationship_data: RelationshipUpdateRequest,
-    repository: GraphRepositoryProtocol = Depends(get_graph_repository),
+    repository: DatabaseGraphRepository = Depends(get_database_repository),
 ):
     """Update an existing relationship."""
-    if not isinstance(repository, DatabaseGraphRepository):
-        raise HTTPException(status_code=500, detail="Database repository not available")
-
     updates: dict = {}
     if relationship_data.source_id is not None:
         updates["source_id"] = relationship_data.source_id
@@ -220,12 +209,9 @@ async def update_relationship(
 @app.delete("/api/relationships/{relationship_id}", response_model=MessageResponse)
 async def delete_relationship(
     relationship_id: str,
-    repository: GraphRepositoryProtocol = Depends(get_graph_repository),
+    repository: DatabaseGraphRepository = Depends(get_database_repository),
 ):
     """Delete a relationship."""
-    if not isinstance(repository, DatabaseGraphRepository):
-        raise HTTPException(status_code=500, detail="Database repository not available")
-
     deleted = repository.delete_relationship(relationship_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Relationship not found")

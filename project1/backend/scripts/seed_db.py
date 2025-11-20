@@ -23,6 +23,34 @@ from backend.database.config import SessionLocal
 from backend.repositories import DatabaseGraphRepository, MockGraphRepository
 
 
+def _seed_data_from_mock(db_repo: DatabaseGraphRepository) -> None:
+    """Shared function to seed data from mock repository."""
+    # Create mock repository to get sample data
+    mock_repo = MockGraphRepository()
+
+    # Get all nodes and relationships from mock
+    nodes = list(mock_repo.list_nodes())
+    relationships = list(mock_repo.list_relationships())
+
+    print(f"Seeding {len(nodes)} nodes and {len(relationships)} relationships...")
+
+    # Insert nodes
+    for node in nodes:
+        try:
+            db_repo.create_node(node)
+            print(f"  Created node: {node.id} - {node.label} (type: {node.type})")
+        except Exception as e:
+            print(f"  Skipped node {node.id}: {e}")
+
+    # Insert relationships
+    for relationship in relationships:
+        try:
+            db_repo.create_relationship(relationship)
+            print(f"  Created relationship: {relationship.id}")
+        except Exception as e:
+            print(f"  Skipped relationship {relationship.id}: {e}")
+
+
 def seed_database() -> None:
     """Seed the database with data from the mock repository."""
     # Initialize database
@@ -34,34 +62,8 @@ def seed_database() -> None:
     try:
         # Create database repository
         db_repo = DatabaseGraphRepository(db)
-
-        # Create mock repository to get sample data
-        mock_repo = MockGraphRepository()
-
-        # Get all companies and relationships from mock
-        companies = list(mock_repo.list_companies())
-        relationships = list(mock_repo.list_relationships())
-
-        print(f"Seeding {len(companies)} companies and {len(relationships)} relationships...")
-
-        # Insert companies
-        for company in companies:
-            try:
-                db_repo.create_company(company)
-                print(f"  Created company: {company.id} - {company.label}")
-            except Exception as e:
-                print(f"  Skipped company {company.id}: {e}")
-
-        # Insert relationships
-        for relationship in relationships:
-            try:
-                db_repo.create_relationship(relationship)
-                print(f"  Created relationship: {relationship.id}")
-            except Exception as e:
-                print(f"  Skipped relationship {relationship.id}: {e}")
-
+        _seed_data_from_mock(db_repo)
         print("Database seeded successfully!")
-
     finally:
         db.close()
 

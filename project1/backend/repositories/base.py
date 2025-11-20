@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Iterable, Optional, Protocol
 
-from backend.domain import Company, GraphSnapshot, Relationship
+from backend.domain import Node, GraphSnapshot, Relationship
 
 
 class GraphRepositoryProtocol(Protocol):
@@ -11,13 +11,13 @@ class GraphRepositoryProtocol(Protocol):
     def get_graph_snapshot(self) -> GraphSnapshot:
         ...
 
-    def list_companies(self) -> Iterable[Company]:
+    def list_nodes(self) -> Iterable[Node]:
         ...
 
     def list_relationships(self) -> Iterable[Relationship]:
         ...
 
-    def get_company(self, company_id: str) -> Optional[Company]:
+    def get_node(self, node_id: str) -> Optional[Node]:
         ...
 
 

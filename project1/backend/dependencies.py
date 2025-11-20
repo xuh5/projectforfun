@@ -15,6 +15,11 @@ def get_graph_repository(db: Session = Depends(get_db)) -> GraphRepositoryProtoc
     return DatabaseGraphRepository(db)
 
 
+def get_database_repository(db: Session = Depends(get_db)) -> DatabaseGraphRepository:
+    """Get database repository instance (typed as DatabaseGraphRepository for CRUD operations)."""
+    return DatabaseGraphRepository(db)
+
+
 @lru_cache(maxsize=1)
 def get_graph_service() -> GraphServiceProtocol:
     """Get graph service instance (cached)."""
