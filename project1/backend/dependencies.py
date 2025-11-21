@@ -5,6 +5,7 @@ from functools import lru_cache
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
+from backend.auth import get_current_user
 from backend.database import get_db, init_db
 from backend.repositories import DatabaseGraphRepository, GraphRepositoryProtocol
 from backend.services import GraphService, GraphServiceProtocol
@@ -32,6 +33,27 @@ def get_graph_service() -> GraphServiceProtocol:
 
 def get_graph_service_from_db(db: Session = Depends(get_db)) -> GraphServiceProtocol:
     """Get graph service instance with database repository."""
+    repository = DatabaseGraphRepository(db)
+    return GraphService(repository)
+
+
+# Optional: Authenticated versions of dependencies
+# These can be used in endpoints that require authentication
+def get_authenticated_graph_repository(
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user),
+) -> DatabaseGraphRepository:
+    """Get database repository instance with authentication."""
+    # User information is available in the 'user' parameter
+    # You can use it for row-level security or user-specific queries
+    return DatabaseGraphRepository(db)
+
+
+def get_authenticated_graph_service(
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user),
+) -> GraphServiceProtocol:
+    """Get graph service instance with database repository and authentication."""
     repository = DatabaseGraphRepository(db)
     return GraphService(repository)
 

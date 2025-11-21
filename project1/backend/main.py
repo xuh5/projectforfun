@@ -16,10 +16,19 @@ from backend.api.schemas import (
     SearchResponse,
 )
 from backend.database import init_db
-from backend.dependencies import get_database_repository, get_graph_repository, get_graph_service_from_db
+from backend.dependencies import (
+    get_database_repository,
+    get_graph_repository,
+    get_graph_service_from_db,
+    # Optional: Import authenticated dependencies when needed
+    # get_authenticated_graph_repository,
+    # get_authenticated_graph_service,
+)
 from backend.domain import Node, Relationship
 from backend.repositories import DatabaseGraphRepository, GraphRepositoryProtocol
 from backend.services import GraphServiceProtocol
+# Optional: Import auth dependency when protecting endpoints
+# from backend.auth import get_current_user
 
 app = FastAPI(title="Project For Fun API")
 
@@ -34,7 +43,7 @@ app.add_middleware(
     allow_origins=["http://localhost:3000"],  # Next.js default port
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*", "Authorization"],  # Include Authorization header for JWT tokens
 )
 
 
