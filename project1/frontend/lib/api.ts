@@ -1,10 +1,28 @@
 import { buildApiUrl, API_ROUTES } from './config';
 import type { NodeDetail, RawGraphResponse } from './types';
+import { createClient } from './supabase/client';
 
-const withDefaultInit = (init?: RequestInit): RequestInit => ({
-  cache: 'no-store',
-  ...init,
-});
+const withDefaultInit = async (init?: RequestInit): Promise<RequestInit> => {
+  const supabase = createClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  
+  const headers: HeadersInit = {
+    ...(init?.headers as HeadersInit),
+  };
+
+  // Add Authorization header if user is authenticated
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`;
+  }
+
+  return {
+    cache: 'no-store',
+    ...init,
+    headers,
+  };
+};
 
 const handleApiError = (error: unknown, defaultMessage: string): Error => {
   if (error instanceof TypeError && error.message.includes('fetch')) {
@@ -22,7 +40,8 @@ const fetchWithErrorHandling = async <T>(
   errorMessage: string
 ): Promise<T> => {
   try {
-    const response = await fetch(url, options);
+    const initWithAuth = await withDefaultInit(options);
+    const response = await fetch(url, initWithAuth);
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: errorMessage }));
       const statusMessage = response.status === 404 
@@ -38,7 +57,8 @@ const fetchWithErrorHandling = async <T>(
 
 export const fetchGraphData = async (init?: RequestInit): Promise<RawGraphResponse | null> => {
   try {
-    const response = await fetch(buildApiUrl(API_ROUTES.graph), withDefaultInit(init));
+    const initWithAuth = await withDefaultInit(init);
+    const response = await fetch(buildApiUrl(API_ROUTES.graph), initWithAuth);
     if (!response.ok) {
       return null;
     }
@@ -54,7 +74,8 @@ export const fetchNodeDetail = async (
   init?: RequestInit
 ): Promise<NodeDetail | null> => {
   try {
-    const response = await fetch(buildApiUrl(API_ROUTES.nodeDetail(nodeId)), withDefaultInit(init));
+    const initWithAuth = await withDefaultInit(init);
+    const response = await fetch(buildApiUrl(API_ROUTES.nodeDetail(nodeId)), initWithAuth);
     if (!response.ok) {
       return null;
     }
@@ -218,7 +239,8 @@ export const searchCompanies = async (query: string, limit: number = 8): Promise
       query: query.trim(),
       limit: limit.toString(),
     });
-    const response = await fetch(buildApiUrl(`${API_ROUTES.search}?${params.toString()}`), withDefaultInit());
+    const initWithAuth = await withDefaultInit();
+    const response = await fetch(buildApiUrl(`${API_ROUTES.search}?${params.toString()}`), initWithAuth);
 
     if (!response.ok) {
       return null;

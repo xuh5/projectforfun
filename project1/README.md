@@ -142,14 +142,23 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-5. Copy `env.example` to `.env` and configure if needed:
-```bash
-# Windows
-copy env.example .env
+5. Set up environment variables:
 
-# macOS/Linux
-cp env.example .env
+**Backend** - Create a `.env` file in the `backend/` directory with:
+```env
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+# Optional: For admin operations
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 ```
+
+**Frontend** - Create a `.env.local` file in the `frontend/` directory with:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+You can find these values in your Supabase project settings under API.
 
 6. Seed the database (first time only):
 ```bash
@@ -169,11 +178,44 @@ uvicorn backend.main:app --reload --port 8000
 The backend API will be available at `http://localhost:8000`
 API documentation will be available at `http://localhost:8000/docs`
 
+## Authentication
+
+This project uses Supabase for authentication with Google OAuth (Gmail login).
+
+### Setup
+
+1. **Supabase Configuration:**
+   - Set up a Supabase project at https://supabase.com
+   - Enable Google OAuth provider in Authentication > Providers
+   - Configure your Google OAuth credentials in Supabase
+   - Add your redirect URL: `http://localhost:3000/auth/callback`
+
+2. **Environment Variables:**
+   - Add Supabase credentials to both backend and frontend `.env` files (see setup instructions above)
+
+3. **Usage:**
+   - Users can sign in via the "Sign In" button in the navigation
+   - After authentication, API requests automatically include the auth token
+   - The backend validates tokens using the `get_current_user` dependency
+
+### Protecting Backend Endpoints
+
+To protect an endpoint, add the `get_current_user` dependency:
+
+```python
+from backend.auth import get_current_user
+
+@app.post("/api/protected")
+async def protected_route(user: dict = Depends(get_current_user)):
+    return {"user_id": user["id"], "email": user["email"]}
+```
+
 ## Development
 
 - Frontend runs on `http://localhost:3000`
 - Backend runs on `http://localhost:8000`
 - API requests from frontend to `/api/*` are automatically proxied to the backend
+- Authentication tokens are automatically included in API requests when users are logged in
 
 ## License
 
