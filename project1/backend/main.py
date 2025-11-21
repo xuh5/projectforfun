@@ -162,21 +162,47 @@ async def create_relationship(
     relationship_data: RelationshipCreateRequest,
     repository: DatabaseGraphRepository = Depends(get_database_repository),
 ):
-    """Create a new relationship."""
+    """Create a new relationship. ID is auto-generated based on source_id, target_id, and type."""
+    from datetime import datetime, timezone
+    
+    # Generate unique ID based on properties: source_id + target_id + type
+    # Format: {source_id}_{target_id}_{type}
+    relationship_id = f"{relationship_data.source_id}_{relationship_data.target_id}_{relationship_data.type}"
+    
+    # Check if relationship already exists
+    existing = repository.get_relationship(relationship_id)
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Relationship already exists with ID: {relationship_id}")
+    
+    # Verify source and target nodes exist
+    source_node = repository.get_node(relationship_data.source_id)
+    if not source_node:
+        raise HTTPException(status_code=404, detail=f"Source node not found: {relationship_data.source_id}")
+    
+    target_node = repository.get_node(relationship_data.target_id)
+    if not target_node:
+        raise HTTPException(status_code=404, detail=f"Target node not found: {relationship_data.target_id}")
+    
     relationship = Relationship(
-        id=relationship_data.id,
+        id=relationship_id,
         source_id=relationship_data.source_id,
         target_id=relationship_data.target_id,
+        type=relationship_data.type,
         strength=relationship_data.strength,
+        created_datetime=datetime.now(timezone.utc),
     )
 
     created = repository.create_relationship(relationship)
-    return {
+    result = {
         "id": created.id,
         "source_id": created.source_id,
         "target_id": created.target_id,
+        "type": created.type,
         "strength": created.strength,
     }
+    if created.created_datetime:
+        result["created_datetime"] = created.created_datetime.isoformat()
+    return result
 
 
 @app.put("/api/relationships/{relationship_id}", response_model=dict)
@@ -191,19 +217,28 @@ async def update_relationship(
         updates["source_id"] = relationship_data.source_id
     if relationship_data.target_id is not None:
         updates["target_id"] = relationship_data.target_id
+    if relationship_data.type is not None:
+        updates["type"] = relationship_data.type
     if relationship_data.strength is not None:
         updates["strength"] = relationship_data.strength
+    if relationship_data.created_datetime is not None:
+        from datetime import datetime
+        updates["created_datetime"] = datetime.fromisoformat(relationship_data.created_datetime.replace('Z', '+00:00'))
 
     updated = repository.update_relationship(relationship_id, **updates)
     if not updated:
         raise HTTPException(status_code=404, detail="Relationship not found")
 
-    return {
+    result = {
         "id": updated.id,
         "source_id": updated.source_id,
         "target_id": updated.target_id,
+        "type": updated.type,
         "strength": updated.strength,
     }
+    if updated.created_datetime:
+        result["created_datetime"] = updated.created_datetime.isoformat()
+    return result
 
 
 @app.delete("/api/relationships/{relationship_id}", response_model=MessageResponse)

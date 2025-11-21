@@ -84,16 +84,20 @@ class NodeUpdateRequest(BaseModel):
 
 
 class RelationshipCreateRequest(BaseModel):
-    id: str
     source_id: str
     target_id: str
+    type: str  # e.g., "owns", "partners_with", "competes_with"
     strength: float | None = None
+    # id is auto-generated based on source_id, target_id, and type
+    # created_datetime is auto-generated
 
 
 class RelationshipUpdateRequest(BaseModel):
     source_id: str | None = None
     target_id: str | None = None
+    type: str | None = None
     strength: float | None = None
+    created_datetime: str | None = None  # ISO format string
 
 
 class MessageResponse(BaseModel):

@@ -34,7 +34,9 @@ export interface GraphEdge {
   id: string;
   source: string;
   target: string;
+  type?: string;  // e.g., "owns", "partners_with", "competes_with"
   strength?: number;
+  created_datetime?: string;  // ISO format string
 }
 
 export interface StockPoint {

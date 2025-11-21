@@ -31,3 +31,19 @@ export const SECTOR_OPTIONS: readonly SectorOption[] = [
 
 export const SECTOR_SAMPLE_LABELS = SECTOR_OPTIONS.map((option) => option.sampleLabel ?? option.label);
 
+type RelationTypeOption = {
+  value: string;
+  label: string;
+};
+
+export const RELATION_TYPE_OPTIONS: readonly RelationTypeOption[] = [
+  { value: 'owns', label: 'Owns' },
+  { value: 'partners_with', label: 'Partners With' },
+  { value: 'competes_with', label: 'Competes With' },
+  { value: 'supplies_to', label: 'Supplies To' },
+  { value: 'works_with', label: 'Works With' },
+  { value: 'invests_in', label: 'Invests In' },
+  { value: 'subsidiary_of', label: 'Subsidiary Of' },
+  { value: 'collaborates_with', label: 'Collaborates With' },
+] as const;
+

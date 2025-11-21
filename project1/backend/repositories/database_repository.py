@@ -43,6 +43,13 @@ class DatabaseGraphRepository(GraphRepositoryProtocol):
             return None
         return self._model_to_node(model)
 
+    def get_relationship(self, relationship_id: str) -> Optional[Relationship]:
+        """Get a relationship by ID."""
+        model = self._db.query(RelationshipModel).filter(RelationshipModel.id == relationship_id).first()
+        if not model:
+            return None
+        return self._model_to_relationship(model)
+
     def create_node(self, node: Node) -> Node:
         """Create a new node."""
         model = self._node_to_model(node)
@@ -100,8 +107,12 @@ class DatabaseGraphRepository(GraphRepositoryProtocol):
             model.source_id = updates["source_id"]
         if "target_id" in updates:
             model.target_id = updates["target_id"]
+        if "type" in updates:
+            model.type = updates["type"]
         if "strength" in updates:
             model.strength = updates["strength"]
+        if "created_datetime" in updates:
+            model.created_datetime = updates["created_datetime"]
 
         self._db.commit()
         self._db.refresh(model)
@@ -168,11 +179,15 @@ class DatabaseGraphRepository(GraphRepositoryProtocol):
 
     def _model_to_relationship(self, model: RelationshipModel) -> Relationship:
         """Convert database model to domain Relationship."""
+        # Handle backward compatibility: if type is missing (old data), default to 'works_with'
+        relationship_type = getattr(model, 'type', None) or 'works_with'
         return Relationship(
             id=model.id,
             source_id=model.source_id,
             target_id=model.target_id,
+            type=relationship_type,
             strength=model.strength,
+            created_datetime=getattr(model, 'created_datetime', None),
         )
 
     def _relationship_to_model(self, relationship: Relationship) -> RelationshipModel:
@@ -181,6 +196,8 @@ class DatabaseGraphRepository(GraphRepositoryProtocol):
             id=relationship.id,
             source_id=relationship.source_id,
             target_id=relationship.target_id,
+            type=relationship.type,
             strength=relationship.strength,
+            created_datetime=relationship.created_datetime,
         )
 

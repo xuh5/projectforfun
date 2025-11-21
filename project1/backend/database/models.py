@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-from sqlalchemy import Column, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -69,7 +70,9 @@ class RelationshipModel(Base):
     id = Column(String, primary_key=True, index=True)
     source_id = Column(String, ForeignKey("nodes.id"), nullable=False, index=True)
     target_id = Column(String, ForeignKey("nodes.id"), nullable=False, index=True)
+    type = Column(String, nullable=True, index=True, default='works_with')  # e.g., "owns", "partners_with", "competes_with"
     strength = Column(Float, nullable=True)
+    created_datetime = Column(DateTime, nullable=True, default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     source_node = relationship("NodeModel", foreign_keys=[source_id], back_populates="source_relationships")
@@ -81,7 +84,10 @@ class RelationshipModel(Base):
             "id": self.id,
             "source_id": self.source_id,
             "target_id": self.target_id,
+            "type": self.type,
             "strength": self.strength,
         }
+        if self.created_datetime:
+            result["created_datetime"] = self.created_datetime.isoformat()
         return result
 

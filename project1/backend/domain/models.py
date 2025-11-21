@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Dict, Iterable, List, Mapping, Optional, Tuple
 
 # ⚠️ 重要：Node 字段定义应该与 node_schema.py 保持一致！
@@ -18,7 +19,9 @@ class Relationship:
     id: str
     source_id: str
     target_id: str
+    type: str  # e.g., "owns", "partners_with", "competes_with", etc.
     strength: Optional[float] = None
+    created_datetime: Optional[datetime] = None
 
 
 @dataclass(frozen=True)
@@ -95,9 +98,12 @@ class GraphSnapshot:
                 "id": relationship.id,
                 "source": relationship.source_id,
                 "target": relationship.target_id,
+                "type": relationship.type,
             }
             if relationship.strength is not None:
                 edge["strength"] = relationship.strength
+            if relationship.created_datetime is not None:
+                edge["created_datetime"] = relationship.created_datetime.isoformat()
             edges.append(edge)
         return edges
 

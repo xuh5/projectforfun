@@ -1,5 +1,6 @@
 import './globals.css';
 import Navigation from '../components/Navigation';
+import Footer from '../components/Footer';
 import { AppProviders } from '../components/AppProviders';
 import { Inter, Poppins } from 'next/font/google';
 
@@ -28,10 +29,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
-      <body>
+      <body style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <AppProviders>
           <Navigation />
-          {children}
+          <main style={{ flex: 1 }}>{children}</main>
+          <Footer />
         </AppProviders>
       </body>
     </html>

@@ -61,7 +61,9 @@ type RawEdge = {
   id?: unknown;
   source?: unknown;
   target?: unknown;
+  type?: unknown;
   strength?: unknown;
+  created_datetime?: unknown;
 };
 
 const maybeNumber = (value: unknown): number | null =>
@@ -141,11 +143,16 @@ export const createGraphEdge = (edge: RawEdge, index: number): GraphEdge | null 
       ? Math.min(Math.max(edge.strength, 0), 1)
       : undefined;
 
+  const type = typeof edge?.type === 'string' ? edge.type : undefined;
+  const created_datetime = typeof edge?.created_datetime === 'string' ? edge.created_datetime : undefined;
+
   return {
     id: String(edge?.id ?? `edge-${index}`),
     source: String(source),
     target: String(target),
+    type,
     strength,
+    created_datetime,
   };
 };
 
