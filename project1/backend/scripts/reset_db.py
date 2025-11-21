@@ -1,6 +1,7 @@
 """
-Script to reset the database by deleting the database file and re-seeding.
+Script to reset the database by dropping all tables and re-seeding.
 This will delete all existing data and create fresh sample data.
+Works with both SQLite (fallback) and Supabase PostgreSQL.
 """
 
 from __future__ import annotations
@@ -16,29 +17,31 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from backend.database import init_db
-from backend.database.config import DATABASE_URL, SessionLocal
+from backend.database.config import DATABASE_URL, SessionLocal, engine
+from backend.database.models import Base
 from backend.repositories import DatabaseGraphRepository
 from backend.scripts.seed_db import _seed_data_from_mock
 
 
 def reset_database() -> None:
-    """Reset the database by deleting the file and re-seeding."""
-    # Get database file path
+    """Reset the database by dropping all tables and re-seeding."""
+    print(f"Resetting database: {DATABASE_URL.split('@')[1] if '@' in DATABASE_URL else DATABASE_URL}")
+    
+    # Drop all tables
     if "sqlite" in DATABASE_URL:
+        # For SQLite, delete the file
         db_path = Path(DATABASE_URL.replace("sqlite:///", ""))
-        
-        # Delete database file if it exists
         if db_path.exists():
-            print(f"Deleting database file: {db_path}")
+            print(f"Deleting SQLite database file: {db_path}")
             db_path.unlink()
             print("Database file deleted successfully!")
         else:
-            print("Database file does not exist. Creating new database.")
+            print("Database file does not exist.")
     else:
-        print(f"Warning: Non-SQLite database detected ({DATABASE_URL})")
-        print("This script only works with SQLite databases.")
-        print("Please manually reset your database or use database-specific commands.")
-        return
+        # For PostgreSQL (Supabase), drop all tables
+        print("Dropping all tables from PostgreSQL database...")
+        Base.metadata.drop_all(bind=engine)
+        print("All tables dropped successfully!")
     
     # Initialize database (creates new tables)
     print("\nInitializing new database...")

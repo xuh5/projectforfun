@@ -23,9 +23,11 @@ def get_database_repository(db: Session = Depends(get_db)) -> DatabaseGraphRepos
 
 @lru_cache(maxsize=1)
 def get_graph_service() -> GraphServiceProtocol:
-    """Get graph service instance (cached)."""
-    # Note: This creates a service with a mock repository for initialization
-    # In practice, services should be created per request with the database session
+    """Get graph service instance with mock repository (cached).
+    
+    Note: This is primarily for testing or development without a database.
+    For production endpoints, use get_graph_service_from_db() instead.
+    """
     from backend.repositories import MockGraphRepository
 
     return GraphService(MockGraphRepository())

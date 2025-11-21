@@ -65,6 +65,7 @@ cp env.example .env
 
 6. Initialize the database (creates tables):
    - The database tables will be created automatically on first startup
+   - If Supabase credentials are not configured, the app will automatically fall back to SQLite for local development
    - For production, consider using Alembic migrations instead
 
 7. Run the server (from the project root or `backend` directory):
@@ -129,7 +130,7 @@ See the Supabase documentation for frontend authentication setup.
 - **API** (`backend/main.py`, `backend/api/schemas.py`): FastAPI routes and response schemas wired through dependency injection in `backend/dependencies.py`.
 - **Authentication** (`backend/auth`): Supabase JWT token verification and user authentication dependencies.
 
-The database uses Supabase PostgreSQL with SQLAlchemy ORM. Authentication is handled via Supabase Auth with JWT tokens.
+The database uses Supabase PostgreSQL with SQLAlchemy ORM. If Supabase credentials are not configured, the app automatically falls back to SQLite for local development. Authentication is handled via Supabase Auth with JWT tokens.
 
 ## Testing
 
