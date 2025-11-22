@@ -91,3 +91,26 @@ class RelationshipModel(Base):
             result["created_datetime"] = self.created_datetime.isoformat()
         return result
 
+
+class UserModel(Base):
+    """SQLAlchemy model for User entity."""
+
+    __tablename__ = "users"
+
+    id = Column(String, primary_key=True, index=True)  # Supabase user ID
+    email = Column(String, nullable=False, unique=True, index=True)
+    balance = Column(Float, nullable=False, default=1000.0)
+    role = Column(String, nullable=False, index=True, default="user")  # "user" or "admin"
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert model to dictionary."""
+        return {
+            "id": self.id,
+            "email": self.email,
+            "balance": self.balance,
+            "role": self.role,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }

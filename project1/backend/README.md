@@ -20,6 +20,8 @@ This is the Python backend using FastAPI with Supabase PostgreSQL and Authentica
    - Project URL (e.g., `https://xxxxx.supabase.co`)
    - `anon` public key (for client-side authentication)
    - `service_role` key (optional, for admin operations - keep secret!)
+5. Go to Settings → API → JWT Settings to find:
+   - **JWT Secret** (required for backend token verification - keep secret!)
 
 ## Setup
 
@@ -55,13 +57,18 @@ cp env.example .env
    - Set `DATABASE_URL` with your Supabase PostgreSQL connection string, OR
    - Set individual Supabase database variables (`SUPABASE_DB_HOST`, `SUPABASE_DB_PASSWORD`, etc.)
    - Set `SUPABASE_URL` and `SUPABASE_ANON_KEY` for authentication
+   - **Set `SUPABASE_JWT_SECRET`** (required for backend JWT token verification)
 
    Example `.env`:
    ```env
    DATABASE_URL=postgresql://postgres:[YOUR-PASSWORD]@[YOUR-PROJECT-REF].supabase.co:5432/postgres
    SUPABASE_URL=https://[YOUR-PROJECT-REF].supabase.co
    SUPABASE_ANON_KEY=[YOUR-ANON-KEY]
+   SUPABASE_JWT_SECRET=[YOUR-JWT-SECRET]
    ```
+   
+   **Important**: The JWT Secret is used to verify JWT tokens on the backend. You can find it in:
+   - Supabase Dashboard → Settings → API → JWT Settings → JWT Secret
 
 6. Initialize the database (creates tables):
    - The database tables will be created automatically on first startup

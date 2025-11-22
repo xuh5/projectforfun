@@ -31,10 +31,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      
+      // 用户登录后，调用后端同步用户
+      if (session?.access_token) {
+        try {
+          const response = await fetch('/api/users/me', {
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+          });
+          if (response.ok) {
+            console.log('✓ User synced to backend');
+          }
+        } catch (error) {
+          console.error('Failed to sync user to backend:', error);
+        }
+      }
     });
 
     return () => subscription.unsubscribe();

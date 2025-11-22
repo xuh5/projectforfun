@@ -1,7 +1,17 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 from backend.api.schemas import (
     NodeCreateRequest,
@@ -23,19 +33,22 @@ from backend.dependencies import (
     # Optional: Import authenticated dependencies when needed
     # get_authenticated_graph_repository,
     # get_authenticated_graph_service,
+    get_user_repository,
 )
 from backend.domain import Node, Relationship
 from backend.repositories import DatabaseGraphRepository, GraphRepositoryProtocol
 from backend.services import GraphServiceProtocol
 # Optional: Import auth dependency when protecting endpoints
-# from backend.auth import get_current_user
+from backend.auth import get_current_user
 
 app = FastAPI(title="Project For Fun API")
 
 # Initialize database on startup
 @app.on_event("startup")
 async def startup_event():
+    logger.info("🚀 Starting up backend server...")
     init_db()
+    logger.info("✓ Database initialized")
 
 # CORS middleware to allow requests from Next.js frontend
 app.add_middleware(
@@ -261,4 +274,22 @@ async def delete_relationship(
         raise HTTPException(status_code=404, detail="Relationship not found")
 
     return MessageResponse(message=f"Relationship {relationship_id} deleted successfully")
+
+
+@app.get("/api/users/me")
+async def get_current_user_info(
+    user: dict = Depends(get_current_user),
+    user_repo = Depends(get_user_repository),
+):
+    """Get current user information. Also triggers user sync on first login."""
+    # get_current_user 已经会自动创建用户，这里只需要返回用户信息
+    db_user = user_repo.get_user(user["id"])
+    if db_user:
+        return {
+            "id": db_user.id,
+            "email": db_user.email,
+            "balance": db_user.balance,
+            "role": db_user.role,
+        }
+    return user  # Fallback to auth info if not in DB yet
 

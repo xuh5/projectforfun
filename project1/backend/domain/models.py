@@ -108,3 +108,15 @@ class GraphSnapshot:
         return edges
 
 
+@dataclass(frozen=True)
+class User:
+    """User entity in the domain layer."""
+
+    id: str  # Supabase user ID
+    email: str
+    balance: float = 1000.0
+    role: str = "user"  # "user" or "admin"
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+

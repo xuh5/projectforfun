@@ -1,119 +1,96 @@
 from __future__ import annotations
 
+import logging
 import os
 from typing import Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
-from supabase import Client, create_client
+from sqlalchemy.orm import Session
+
+from backend.database import get_db
+from backend.repositories.user_repository import UserRepository
+
+logger = logging.getLogger(__name__)
 
 # Security scheme for extracting Bearer token
 security = HTTPBearer()
 
 
-def get_supabase_client() -> Client:
-    """Initialize and return Supabase client."""
-    supabase_url = os.getenv("SUPABASE_URL")
-    supabase_key = os.getenv("SUPABASE_ANON_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-    
-    if not supabase_url or not supabase_key:
-        raise ValueError(
-            "SUPABASE_URL and SUPABASE_ANON_KEY (or SUPABASE_SERVICE_ROLE_KEY) must be set in environment variables"
-        )
-    
-    return create_client(supabase_url, supabase_key)
-
-
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db),
 ) -> dict:
     """
     Verify JWT token and return user information.
-    
-    This dependency can be used in FastAPI endpoints to require authentication.
-    
-    Example:
-        @app.get("/api/protected")
-        async def protected_route(user: dict = Depends(get_current_user)):
-            return {"user_id": user["sub"]}
+    Automatically creates user record in database on first login.
     """
     token = credentials.credentials
     
+    # Get JWT Secret from environment variables
+    jwt_secret = os.getenv("SUPABASE_JWT_SECRET")
+    if not jwt_secret:
+        logger.error("SUPABASE_JWT_SECRET not configured")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="JWT secret not configured. Please set SUPABASE_JWT_SECRET in your .env file.",
+        )
+    
     try:
-        # Get Supabase client to verify token
-        supabase = get_supabase_client()
-        
-        # Use Supabase client to get user from token
-        # This verifies the token and returns user information
-        try:
-            user_response = supabase.auth.get_user(token)
-            if not user_response or not user_response.user:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid authentication token",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
-            
-            user = user_response.user
-            
-            # Return user information in a consistent format
-            return {
-                "id": user.id,
-                "email": user.email,
-                "sub": user.id,  # Standard JWT claim
-                "role": user.role or "authenticated",
-                "app_metadata": user.app_metadata or {},
-                "user_metadata": user.user_metadata or {},
+        # Decode and verify JWT token using the JWT Secret
+        # Verify signature and expiration, but skip audience and issuer verification
+        payload = jwt.decode(
+            token,
+            jwt_secret,
+            algorithms=["HS256"],
+            options={
+                "verify_signature": True,
+                "verify_exp": True,
+                "verify_aud": False,
+                "verify_iss": False,
             }
-        except Exception as e:
-            # If Supabase client verification fails, try manual JWT verification as fallback
-            # This handles cases where the token format might differ
-            supabase_anon_key = os.getenv("SUPABASE_ANON_KEY")
-            
-            if not supabase_anon_key:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Supabase configuration error",
-                )
-            
-            try:
-                # Manual JWT verification (fallback)
-                # Note: Supabase tokens are typically signed with a JWT secret, not the anon key
-                # For production, consider using JWKS verification
-                payload = jwt.decode(
-                    token,
-                    supabase_anon_key,
-                    algorithms=["HS256"],
-                    options={"verify_signature": True, "verify_exp": True},
-                )
-                
-                user_id: Optional[str] = payload.get("sub")
-                if user_id is None:
-                    raise HTTPException(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail="Invalid token: missing user ID",
-                        headers={"WWW-Authenticate": "Bearer"},
-                    )
-                
-                return {
-                    "id": user_id,
-                    "email": payload.get("email"),
-                    "sub": user_id,
-                    "role": payload.get("role", "authenticated"),
-                    "app_metadata": payload.get("app_metadata", {}),
-                    "user_metadata": payload.get("user_metadata", {}),
-                }
-            except JWTError as jwt_error:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail=f"Invalid authentication token: {str(jwt_error)}",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
+        )
         
+        user_id = payload.get("sub")
+        user_email = payload.get("email") or ""
+        
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token: missing user ID",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Sync user to database (create if first login)
+        try:
+            user_repo = UserRepository(db)
+            user_repo.get_or_create_user(user_id, user_email)
+        except Exception as e:
+            logger.error(f"Failed to sync user to database: {str(e)}", exc_info=True)
+            # Don't fail authentication if user sync fails, but log the error
+        
+        # Return user information
+        return {
+            "id": user_id,
+            "email": user_email,
+            "sub": user_id,
+            "role": "authenticated",
+            "app_metadata": {},
+            "user_metadata": {},
+        }
+        
+    except JWTError as e:
+        logger.warning(f"JWT verification failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid authentication token: {str(e)}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Authentication error: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Could not validate credentials: {str(e)}",
@@ -123,6 +100,7 @@ def get_current_user(
 
 def get_optional_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False)),
+    db: Session = Depends(get_db),
 ) -> Optional[dict]:
     """
     Optionally verify JWT token and return user information.
@@ -141,7 +119,7 @@ def get_optional_user(
         return None
     
     try:
-        return get_current_user(credentials)
+        return get_current_user(credentials, db)
     except HTTPException:
         return None
 

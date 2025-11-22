@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from backend.auth import get_current_user
 from backend.database import get_db, init_db
 from backend.repositories import DatabaseGraphRepository, GraphRepositoryProtocol
+from backend.repositories.user_repository import UserRepository
 from backend.services import GraphService, GraphServiceProtocol
 
 
@@ -58,5 +59,10 @@ def get_authenticated_graph_service(
     """Get graph service instance with database repository and authentication."""
     repository = DatabaseGraphRepository(db)
     return GraphService(repository)
+
+
+def get_user_repository(db: Session = Depends(get_db)) -> UserRepository:
+    """Get user repository instance."""
+    return UserRepository(db)
 
 
