@@ -175,10 +175,17 @@ async def create_node(
         return NodeDetailResponse(id=created_node.id, data=dict(created_node.to_detail().data))
     else:
         # Return error with rejection reason
-        raise HTTPException(
-            status_code=400,
-            detail=rejection_reason or "Node creation request was rejected",
-        )
+        # Use 401 for authentication errors, 400 for other rejections
+        if user is None:
+            raise HTTPException(
+                status_code=401,
+                detail=rejection_reason or "User must be authenticated to create nodes",
+            )
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=rejection_reason or "Node creation request was rejected",
+            )
 
 
 @app.put("/api/nodes/{node_id}", response_model=NodeDetailResponse)

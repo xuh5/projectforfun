@@ -11,6 +11,7 @@ export const API_ROUTES = {
   createRelationship: '/api/relationships',
   updateRelationship: (relationshipId: string) => `/api/relationships/${encodeURIComponent(relationshipId)}`,
   deleteRelationship: (relationshipId: string) => `/api/relationships/${encodeURIComponent(relationshipId)}`,
+  currentUser: '/api/users/me',
 } as const;
 
 export const buildApiUrl = (path: string): string => {

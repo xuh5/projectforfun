@@ -9,11 +9,13 @@ import {
   deleteCompany,
   updateRelationship,
   deleteRelationship,
+  getCurrentUserInfo,
   type UpdateCompanyRequest,
   type UpdateRelationshipRequest,
 } from '../../lib/api';
 import { hydrateGraphResponse } from '../../lib/graph';
 import { useToast } from '../../components/ToastProvider';
+import { useAuth } from '../../contexts/AuthContext';
 import type { GraphEdge, GraphNode } from '../../lib/types';
 
 type TabType = 'company' | 'relationship';
@@ -36,9 +38,11 @@ interface EditRelationshipState {
 export default function ManagePage() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('company');
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [nodes, setNodes] = useState<GraphNode[]>([]);
   const [edges, setEdges] = useState<GraphEdge[]>([]);
@@ -46,10 +50,46 @@ export default function ManagePage() {
   const [editingRelationship, setEditingRelationship] = useState<EditRelationshipState | null>(null);
   const [deletingCompanyId, setDeletingCompanyId] = useState<string | null>(null);
   const [deletingRelationshipId, setDeletingRelationshipId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    checkAuthAndLoad();
+  }, [user, authLoading]);
+
+  const checkAuthAndLoad = async () => {
+    // Wait for auth to finish loading
+    if (authLoading) {
+      setCheckingAuth(true);
+      return;
+    }
+
+    setCheckingAuth(true);
+
+    // Check if user is logged in
+    if (!user) {
+      setCheckingAuth(false);
+      router.push('/');
+      return;
+    }
+
+    // Check if user is admin
+    try {
+      const userInfo = await getCurrentUserInfo();
+      if (!userInfo || userInfo.role !== 'admin') {
+        setCheckingAuth(false);
+        router.push('/');
+        return;
+      }
+
+      setIsAdmin(true);
+      await loadData();
+    } catch (err) {
+      setCheckingAuth(false);
+      router.push('/');
+    } finally {
+      setCheckingAuth(false);
+    }
+  };
 
   const loadData = async () => {
     setFetching(true);
@@ -177,6 +217,11 @@ export default function ManagePage() {
     const node = nodes.find((n) => n.id === nodeId);
     return node?.data?.label || nodeId;
   };
+
+  // Hide page content while checking auth or if not admin
+  if (checkingAuth || authLoading || !isAdmin) {
+    return null;
+  }
 
   return (
     <div className="page-wrapper">

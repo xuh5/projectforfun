@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { getCurrentUserInfo } from '../lib/api';
 import LoginModal from './LoginModal';
 
 export default function Navigation() {
@@ -11,6 +12,7 @@ export default function Navigation() {
   const { user, loading, signOut } = useAuth();
   const [userCoins, setUserCoins] = useState<number>(1000); // Default starting coins
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Load user coins from localStorage (or API in the future)
   useEffect(() => {
@@ -19,6 +21,25 @@ export default function Navigation() {
       setUserCoins(parseInt(storedCoins, 10));
     }
   }, []);
+
+  // Check if user is admin
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (!user || loading) {
+        setIsAdmin(false);
+        return;
+      }
+
+      try {
+        const userInfo = await getCurrentUserInfo();
+        setIsAdmin(userInfo?.role === 'admin');
+      } catch {
+        setIsAdmin(false);
+      }
+    };
+
+    checkAdmin();
+  }, [user, loading]);
 
   const isActive = (path: string) => pathname === path;
 
@@ -69,13 +90,15 @@ export default function Navigation() {
             >
               Add Data
             </button>
-            <button
-              className={`nav-link ${isActive('/manage') ? 'active' : ''}`}
-              onClick={() => router.push('/manage')}
-              type="button"
-            >
-              Manage
-            </button>
+            {isAdmin && (
+              <button
+                className={`nav-link ${isActive('/manage') ? 'active' : ''}`}
+                onClick={() => router.push('/manage')}
+                type="button"
+              >
+                Manage
+              </button>
+            )}
           </div>
 
           <div className="nav-right">

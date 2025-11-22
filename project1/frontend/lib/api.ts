@@ -44,13 +44,29 @@ const fetchWithErrorHandling = async <T>(
     const response = await fetch(url, initWithAuth);
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: errorMessage }));
-      const statusMessage = response.status === 404 
-        ? error.detail || 'Resource not found. It may have been deleted.'
-        : error.detail || errorMessage;
+      // Handle specific status codes with appropriate messages
+      let statusMessage: string;
+      if (response.status === 401) {
+        statusMessage = error.detail || 'Authentication required. Please log in.';
+      } else if (response.status === 404) {
+        statusMessage = error.detail || 'Resource not found. It may have been deleted.';
+      } else {
+        statusMessage = error.detail || errorMessage;
+      }
       throw new Error(statusMessage);
     }
     return (await response.json()) as T;
   } catch (error) {
+    // Only convert to network error if it's actually a network/fetch error
+    // Don't convert HTTP errors (which are already Error instances with proper messages)
+    if (error instanceof Error && error.message) {
+      // If it's already an Error with a message, return it as-is
+      // Only convert TypeError (network errors) to generic connection error
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        return Promise.reject(new Error('Unable to connect to the server. Please check your internet connection.'));
+      }
+      return Promise.reject(error);
+    }
     throw handleApiError(error, errorMessage);
   }
 };
@@ -247,6 +263,28 @@ export const searchCompanies = async (query: string, limit: number = 8): Promise
     }
 
     return (await response.json()) as SearchResponse;
+  } catch {
+    return null;
+  }
+};
+
+export interface UserInfo {
+  id: string;
+  email: string;
+  balance: number;
+  role: string;
+}
+
+export const getCurrentUserInfo = async (): Promise<UserInfo | null> => {
+  try {
+    const initWithAuth = await withDefaultInit();
+    const response = await fetch(buildApiUrl(API_ROUTES.currentUser), initWithAuth);
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return (await response.json()) as UserInfo;
   } catch {
     return null;
   }
