@@ -4,7 +4,8 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createNode, createRelationship, fetchGraphData, type CreateNodeRequest, type CreateRelationshipRequest } from '../../lib/api';
 import { useToast } from '../../components/ToastProvider';
-import { NODE_TYPE_OPTIONS, RELATION_TYPE_OPTIONS, SECTOR_OPTIONS } from '../../lib/constants';
+import { NODE_TYPE_OPTIONS, RELATION_TYPE_OPTIONS } from '../../lib/constants';
+import { CompanyNodeForm, GenericNodeForm } from '../../components/NodeForms';
 import type { GraphNode } from '../../lib/types';
 
 type TabType = 'node' | 'relationship';
@@ -240,91 +241,21 @@ export default function AddDataPage() {
               <small>Select the type of node to create</small>
             </div>
 
-            <div className="form-group">
-              <label htmlFor="node-id">
-                Node ID <span className="required">*</span>
-              </label>
-              <input
-                id="node-id"
-                type="text"
-                value={nodeForm.id}
-                onChange={(e) => setNodeForm({ ...nodeForm, id: e.target.value.toUpperCase() })}
-                placeholder={nodeForm.type === 'company' ? 'e.g., TSLA (NASDAQ)' : 'e.g., node-1'}
-                required
-                disabled={loading}
-                style={{ textTransform: 'uppercase' }}
+            {nodeForm.type === 'company' ? (
+              <CompanyNodeForm
+                formData={nodeForm}
+                onChange={setNodeForm}
+                loading={loading}
+                getNodeTypeLabel={getNodeTypeLabel}
               />
-              <small>
-                {nodeForm.type === 'company' 
-                  ? 'Unique identifier (e.g., NASDAQ stock symbol like TSLA)' 
-                  : 'Unique identifier for the node'}
-              </small>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="node-label">
-                Name <span className="required">*</span>
-              </label>
-              <input
-                id="node-label"
-                type="text"
-                value={nodeForm.label}
-                onChange={(e) => setNodeForm({ ...nodeForm, label: e.target.value })}
-                placeholder={nodeForm.type === 'company' ? 'e.g., Tesla, Inc.' : 'e.g., Node Name'}
-                required
-                disabled={loading}
+            ) : (
+              <GenericNodeForm
+                formData={nodeForm}
+                onChange={setNodeForm}
+                loading={loading}
+                getNodeTypeLabel={getNodeTypeLabel}
               />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="node-description">
-                Description <span className="required">*</span>
-              </label>
-              <textarea
-                id="node-description"
-                value={nodeForm.description}
-                onChange={(e) => setNodeForm({ ...nodeForm, description: e.target.value })}
-                placeholder={`Describe the ${nodeForm.type}...`}
-                rows={4}
-                required
-                disabled={loading}
-              />
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="node-sector">Sector</label>
-                <select
-                  id="node-sector"
-                  value={nodeForm.sector || ''}
-                  onChange={(e) => {
-                    const { value } = e.target;
-                    setNodeForm({ ...nodeForm, sector: value || undefined });
-                  }}
-                  disabled={loading}
-                >
-                  <option value="">Select a sector</option>
-                  {SECTOR_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.label}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <small>Choose from predefined sectors</small>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="node-color">Color (Hex)</label>
-                <input
-                  id="node-color"
-                  type="text"
-                  value={nodeForm.color}
-                  onChange={(e) => setNodeForm({ ...nodeForm, color: e.target.value })}
-                  placeholder="e.g., #667eea"
-                  disabled={loading}
-                />
-              </div>
-            </div>
+            )}
 
             <button type="submit" className="submit-button" disabled={loading}>
               {loading ? 'Creating...' : `Create ${getNodeTypeLabel(nodeForm.type ?? defaultNodeType)}`}

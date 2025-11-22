@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   fetchGraphData,
-  updateCompany,
-  deleteCompany,
+  updateNode,
+  deleteNode,
   updateRelationship,
   deleteRelationship,
   getCurrentUserInfo,
-  type UpdateCompanyRequest,
+  type UpdateNodeRequest,
   type UpdateRelationshipRequest,
 } from '../../lib/api';
 import { hydrateGraphResponse } from '../../lib/graph';
@@ -117,14 +117,14 @@ export default function ManagePage() {
     setError(null);
 
     try {
-      const data: UpdateCompanyRequest = {
+      const data: UpdateNodeRequest = {
         label: editingCompany.label?.trim(),
         description: editingCompany.description?.trim() || undefined,
         sector: editingCompany.sector?.trim() || undefined,
         color: editingCompany.color?.trim() || undefined,
       };
 
-      await updateCompany(editingCompany.id, data);
+      await updateNode(editingCompany.id, data);
       showToast(`Company "${data.label}" updated successfully!`, 'success');
       setEditingCompany(null);
       sessionStorage.setItem('graphNeedsRefresh', 'true');
@@ -145,7 +145,7 @@ export default function ManagePage() {
     setError(null);
 
     try {
-      await deleteCompany(deletingCompanyId);
+      await deleteNode(deletingCompanyId);
       showToast('Company deleted successfully!', 'success');
       setDeletingCompanyId(null);
       sessionStorage.setItem('graphNeedsRefresh', 'true');

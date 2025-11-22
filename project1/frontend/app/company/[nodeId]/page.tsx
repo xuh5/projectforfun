@@ -2,7 +2,7 @@ import Link from 'next/link';
 import '../company.css';
 
 import { StockSparkline } from '../../../components/company/StockSparkline';
-import { fetchCompanyDetail, fetchGraphData } from '../../../lib/api';
+import { fetchNodeDetail, fetchGraphData } from '../../../lib/api';
 import { hydrateGraphResponse } from '../../../lib/graph';
 import { formatNumber, generateMockSeries } from '../../../lib/stocks';
 import type { GraphEdge, GraphNode } from '../../../lib/types';
@@ -15,7 +15,7 @@ interface CompanyPageProps {
 export default async function CompanyPage({ params, searchParams }: CompanyPageProps) {
   const decodedId = decodeURIComponent(params.nodeId);
   const [companyDetail, rawGraph] = await Promise.all([
-    fetchCompanyDetail(decodedId),
+    fetchNodeDetail(decodedId),
     fetchGraphData(),
   ]);
 

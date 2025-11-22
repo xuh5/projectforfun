@@ -102,8 +102,6 @@ export const fetchNodeDetail = async (
   }
 };
 
-// Backward compatibility alias
-export const fetchCompanyDetail = fetchNodeDetail;
 
 export interface CreateNodeRequest {
   id: string;
@@ -115,8 +113,6 @@ export interface CreateNodeRequest {
   metadata?: Record<string, unknown>;
 }
 
-// Backward compatibility alias
-export type CreateCompanyRequest = CreateNodeRequest;
 
 export interface CreateRelationshipRequest {
   source_id: string;
@@ -147,9 +143,6 @@ export const createNode = async (data: CreateNodeRequest): Promise<NodeDetail | 
   );
 };
 
-// Backward compatibility alias
-export const createCompany = createNode;
-
 export const createRelationship = async (data: CreateRelationshipRequest): Promise<CreateRelationshipRequest | null> => {
   return fetchWithErrorHandling<CreateRelationshipRequest>(
     buildApiUrl(API_ROUTES.createRelationship),
@@ -173,8 +166,6 @@ export interface UpdateNodeRequest {
   metadata?: Record<string, unknown>;
 }
 
-// Backward compatibility alias
-export type UpdateCompanyRequest = UpdateNodeRequest;
 
 export interface UpdateRelationshipRequest {
   source_id?: string;
@@ -196,9 +187,6 @@ export const updateNode = async (nodeId: string, data: UpdateNodeRequest): Promi
   );
 };
 
-// Backward compatibility alias
-export const updateCompany = updateNode;
-
 export const deleteNode = async (nodeId: string): Promise<void> => {
   await fetchWithErrorHandling<void>(
     buildApiUrl(API_ROUTES.deleteNode(nodeId)),
@@ -206,9 +194,6 @@ export const deleteNode = async (nodeId: string): Promise<void> => {
     'Failed to delete node. Please try again.'
   );
 };
-
-// Backward compatibility alias
-export const deleteCompany = deleteNode;
 
 export const updateRelationship = async (relationshipId: string, data: UpdateRelationshipRequest): Promise<{ id: string; source_id: string; target_id: string; strength?: number } | null> => {
   return fetchWithErrorHandling<{ id: string; source_id: string; target_id: string; strength?: number }>(
