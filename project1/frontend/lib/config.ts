@@ -4,6 +4,7 @@ export const API_BASE_URL =
 export const API_ROUTES = {
   graph: '/api/nodes',
   nodeDetail: (nodeId: string) => `/api/nodes/${encodeURIComponent(nodeId)}`,
+  stockData: (nodeId: string) => `/api/nodes/${encodeURIComponent(nodeId)}/stock`,
   search: '/api/search',
   createNode: '/api/nodes',
   updateNode: (nodeId: string) => `/api/nodes/${encodeURIComponent(nodeId)}`,

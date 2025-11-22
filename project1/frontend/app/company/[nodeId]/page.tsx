@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import '../company.css';
 
-import { StockSparkline } from '../../../components/company/StockSparkline';
-import { fetchNodeDetail, fetchGraphData } from '../../../lib/api';
+import { StockChart } from '../../../components/company/StockChart';
+import { fetchNodeDetail, fetchGraphData, fetchStockData } from '../../../lib/api';
 import { hydrateGraphResponse } from '../../../lib/graph';
 import { formatNumber, generateMockSeries } from '../../../lib/stocks';
 import type { GraphEdge, GraphNode } from '../../../lib/types';
@@ -14,9 +14,10 @@ interface CompanyPageProps {
 
 export default async function CompanyPage({ params, searchParams }: CompanyPageProps) {
   const decodedId = decodeURIComponent(params.nodeId);
-  const [companyDetail, rawGraph] = await Promise.all([
+  const [companyDetail, rawGraph, stockData] = await Promise.all([
     fetchNodeDetail(decodedId),
     fetchGraphData(),
+    fetchStockData(decodedId), // Try to fetch real stock data
   ]);
 
   const graphData = rawGraph ? hydrateGraphResponse(rawGraph) : null;
@@ -39,13 +40,19 @@ export default async function CompanyPage({ params, searchParams }: CompanyPageP
       ? companyDetail.data.description.trim()
       : `Detailed information for ${resolvedLabel} will be expanded as the knowledge graph evolves.`;
 
-  const series = generateMockSeries(resolvedLabel);
-  const latestPrice = series.at(-1)?.price ?? 0;
-  const startingPrice = series[0]?.price ?? latestPrice;
-  const change = latestPrice - startingPrice;
-  const changePercent = startingPrice ? (change / startingPrice) * 100 : 0;
-  const seriesHigh = Math.max(...series.map((point) => point.price));
-  const seriesLow = Math.min(...series.map((point) => point.price));
+  // Use real stock data if available, otherwise fall back to mock data
+  const hasRealData = stockData !== null;
+  const series = stockData?.series ?? generateMockSeries(resolvedLabel);
+  const latestPrice = stockData?.current_price ?? series.at(-1)?.price ?? 0;
+  const startingPrice = stockData?.previous_close ?? series[0]?.price ?? latestPrice;
+  const change = stockData?.day_change ?? (latestPrice - startingPrice);
+  const changePercent = stockData?.day_change_percent ?? (startingPrice ? (change / startingPrice) * 100 : 0);
+  const seriesHigh = stockData?.week_52_high ?? Math.max(...series.map((point) => point.price));
+  const seriesLow = stockData?.week_52_low ?? Math.min(...series.map((point) => point.price));
+  const openPrice = stockData?.open ?? series[0]?.price ?? latestPrice;
+  const highPrice = stockData?.high ?? seriesHigh;
+  const lowPrice = stockData?.low ?? seriesLow;
+  const volume = stockData?.volume ?? Math.round(latestPrice * 120_000);
 
   const neighborIds = new Set<string>();
 
@@ -115,10 +122,19 @@ export default async function CompanyPage({ params, searchParams }: CompanyPageP
               </dd>
             </div>
             <div>
-              <dt>52-week range*</dt>
+              <dt>52-week range</dt>
               <dd>
-                ${formatNumber(seriesLow, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} – $
-                {formatNumber(seriesHigh, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {stockData && stockData.week_52_low !== null && stockData.week_52_high !== null ? (
+                  <>
+                    ${formatNumber(stockData.week_52_low, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} – $
+                    {formatNumber(stockData.week_52_high, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </>
+                ) : (
+                  <>
+                    ${formatNumber(seriesLow, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} – $
+                    {formatNumber(seriesHigh, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </>
+                )}
               </dd>
             </div>
             <div>
@@ -157,31 +173,37 @@ export default async function CompanyPage({ params, searchParams }: CompanyPageP
                 <h2>Stock performance</h2>
                 <p>Sparkline generated from recent activity for a quick momentum glimpse.</p>
               </div>
-              <span className="stock-label">Simulated data</span>
+              <span className="stock-label">{hasRealData ? 'Live data' : 'Simulated data'}</span>
             </header>
-            <StockSparkline series={series} />
+            {stockData?.chart_data && stockData.chart_data.length > 0 ? (
+              <StockChart data={stockData.chart_data} height={400} />
+            ) : (
+              <div className="stock-chart-empty">
+                <p>Chart data not available.</p>
+              </div>
+            )}
             <ul className="stock-metrics">
               <li>
                 <span>Open</span>
                 <strong>
-                  ${formatNumber(startingPrice, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ${formatNumber(openPrice, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </strong>
               </li>
               <li>
                 <span>High</span>
                 <strong>
-                  ${formatNumber(seriesHigh, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ${formatNumber(highPrice, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </strong>
               </li>
               <li>
                 <span>Low</span>
                 <strong>
-                  ${formatNumber(seriesLow, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ${formatNumber(lowPrice, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </strong>
               </li>
               <li>
                 <span>Volume</span>
-                <strong>{formatNumber(Math.round(latestPrice * 120_000))}</strong>
+                <strong>{formatNumber(volume)}</strong>
               </li>
             </ul>
           </article>

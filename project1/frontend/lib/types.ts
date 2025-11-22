@@ -44,6 +44,26 @@ export interface StockPoint {
   price: number;
 }
 
+export interface ChartDataPoint {
+  time: string; // Format: 'YYYY-MM-DD'
+  value: number;
+}
+
+export interface StockData {
+  current_price: number;
+  previous_close: number | null;
+  day_change: number;
+  day_change_percent: number;
+  week_52_high: number | null;
+  week_52_low: number | null;
+  volume: number;
+  open: number;
+  high: number;
+  low: number;
+  series: StockPoint[];
+  chart_data: ChartDataPoint[];
+}
+
 export interface RawGraphResponse {
   nodes: unknown[];
   edges: unknown[];

@@ -141,3 +141,31 @@ class NodeRequestResponse(BaseModel):
     updated_at: datetime | None = None
 
 
+class StockPoint(BaseModel):
+    """A single data point in a stock price series."""
+    dateLabel: str
+    price: float
+
+
+class ChartDataPoint(BaseModel):
+    """A single data point for lightweight-charts."""
+    time: str  # Format: 'YYYY-MM-DD'
+    value: float
+
+
+class StockDataResponse(BaseModel):
+    """Response schema for stock data."""
+    current_price: float
+    previous_close: float | None = None
+    day_change: float
+    day_change_percent: float
+    week_52_high: float | None = None
+    week_52_low: float | None = None
+    volume: int
+    open: float
+    high: float
+    low: float
+    series: List[StockPoint]  # For backward compatibility
+    chart_data: List[ChartDataPoint]  # For lightweight-charts
+
+

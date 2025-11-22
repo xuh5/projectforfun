@@ -1,5 +1,5 @@
 import { buildApiUrl, API_ROUTES } from './config';
-import type { NodeDetail, RawGraphResponse } from './types';
+import type { NodeDetail, RawGraphResponse, StockData } from './types';
 import { createClient } from './supabase/client';
 
 const withDefaultInit = async (init?: RequestInit): Promise<RequestInit> => {
@@ -270,6 +270,23 @@ export const getCurrentUserInfo = async (): Promise<UserInfo | null> => {
     }
 
     return (await response.json()) as UserInfo;
+  } catch {
+    return null;
+  }
+};
+
+export const fetchStockData = async (
+  nodeId: string,
+  init?: RequestInit
+): Promise<StockData | null> => {
+  try {
+    const initWithAuth = await withDefaultInit(init);
+    const response = await fetch(buildApiUrl(API_ROUTES.stockData(nodeId)), initWithAuth);
+    if (!response.ok) {
+      return null;
+    }
+
+    return (await response.json()) as StockData;
   } catch {
     return null;
   }

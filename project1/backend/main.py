@@ -26,6 +26,7 @@ from backend.api.schemas import (
     RelationshipUpdateRequest,
     SearchHit,
     SearchResponse,
+    StockDataResponse,
 )
 from backend.database import init_db
 from backend.dependencies import (
@@ -40,6 +41,7 @@ from backend.dependencies import (
 from backend.domain import Node, NodeRequest, Relationship
 from backend.repositories import DatabaseGraphRepository, GraphRepositoryProtocol
 from backend.services import GraphServiceProtocol, approve_node_request
+from backend.services.stock_data import get_stock_data
 # Optional: Import auth dependency when protecting endpoints
 from backend.auth import get_current_user, get_optional_user
 
@@ -344,4 +346,20 @@ async def get_current_user_info(
             "role": db_user.role,
         }
     return user  # Fallback to auth info if not in DB yet
+
+
+@app.get("/api/nodes/{node_id}/stock", response_model=StockDataResponse)
+async def get_stock_data_for_node(node_id: str):
+    """
+    Get real stock data for a node (stock symbol).
+    Returns current price, day change, 52-week range, and historical series.
+    """
+    stock_data = get_stock_data(node_id)
+    if not stock_data:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Stock data not available for '{node_id}'. The symbol may be invalid or data may be temporarily unavailable."
+        )
+    
+    return StockDataResponse(**stock_data)
 
