@@ -5,8 +5,8 @@ from typing import Iterable, Optional
 
 from sqlalchemy.orm import Session
 
-from backend.database.models import NodeModel, RelationshipModel
-from backend.domain import Node, GraphSnapshot, Relationship
+from backend.database.models import NodeModel, NodeRequestModel, RelationshipModel
+from backend.domain import Node, NodeRequest, GraphSnapshot, Relationship
 from backend.repositories.base import GraphRepositoryProtocol
 
 # ⚠️ 重要：字段映射应该与 node_schema.py 保持一致！
@@ -199,5 +199,87 @@ class DatabaseGraphRepository(GraphRepositoryProtocol):
             type=relationship.type,
             strength=relationship.strength,
             created_datetime=relationship.created_datetime,
+        )
+
+    # NodeRequest CRUD methods
+    def create_node_request(self, node_request: NodeRequest) -> NodeRequest:
+        """Create a new node request."""
+        model = self._node_request_to_model(node_request)
+        self._db.add(model)
+        self._db.commit()
+        self._db.refresh(model)
+        return self._model_to_node_request(model)
+
+    def get_node_request(self, request_id: int) -> Optional[NodeRequest]:
+        """Get a node request by ID."""
+        model = self._db.query(NodeRequestModel).filter(NodeRequestModel.id == request_id).first()
+        if not model:
+            return None
+        return self._model_to_node_request(model)
+
+    def update_node_request_status(
+        self,
+        request_id: int,
+        status: str,
+        approver_id: Optional[str] = None,
+        rejection_reason: Optional[str] = None,
+    ) -> Optional[NodeRequest]:
+        """Update node request status."""
+        model = self._db.query(NodeRequestModel).filter(NodeRequestModel.id == request_id).first()
+        if not model:
+            return None
+
+        model.status = status
+        if approver_id:
+            model.approver_id = approver_id
+        if rejection_reason:
+            model.rejection_reason = rejection_reason
+        if status == "approved":
+            from datetime import datetime, timezone
+            model.approved_at = datetime.now(timezone.utc)
+
+        self._db.commit()
+        self._db.refresh(model)
+        return self._model_to_node_request(model)
+
+    def _model_to_node_request(self, model: NodeRequestModel) -> NodeRequest:
+        """Convert database model to domain NodeRequest."""
+        metadata = json.loads(model.metadata_json) if model.metadata_json else {}
+        return NodeRequest(
+            id=model.id,
+            requestor_id=model.requestor_id,
+            status=model.status,  # type: ignore
+            node_id=model.node_id,
+            node_type=model.node_type,
+            label=model.label,
+            description=model.description,
+            sector=model.sector,
+            color=model.color,
+            metadata=metadata,
+            approver_id=model.approver_id,
+            approved_at=model.approved_at,
+            rejection_reason=model.rejection_reason,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+        )
+
+    def _node_request_to_model(self, node_request: NodeRequest) -> NodeRequestModel:
+        """Convert domain NodeRequest to database model."""
+        return NodeRequestModel(
+            id=node_request.id if node_request.id > 0 else None,  # Let DB auto-generate if 0
+            requestor_id=node_request.requestor_id,
+            status=node_request.status,
+            node_id=node_request.node_id,
+            node_type=node_request.node_type,
+            label=node_request.label,
+            description=node_request.description,
+            sector=node_request.sector,
+            color=node_request.color,
+            metadata_json=json.dumps(node_request.metadata),
+            approver_id=node_request.approver_id,
+            approved_at=node_request.approved_at,
+            rejection_reason=node_request.rejection_reason,
+            created_at=node_request.created_at,
+            updated_at=node_request.updated_at,
         )
 

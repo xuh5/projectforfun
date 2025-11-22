@@ -1,6 +1,6 @@
 """Domain models for the node relationship graph."""
 
-from .models import Node, NodeDetail, GraphSnapshot, Relationship, User
+from .models import Node, NodeDetail, GraphSnapshot, Relationship, User, NodeRequest
 from .node_schema import NODE_FIELDS, NODE_FIELD_NAMES, get_field_by_name
 from .schema_utils import (
     validate_schema_consistency,
@@ -15,6 +15,7 @@ __all__ = [
     "GraphSnapshot",
     "Relationship",
     "User",
+    "NodeRequest",
     "NODE_FIELDS",
     "NODE_FIELD_NAMES",
     "get_field_by_name",

@@ -114,3 +114,46 @@ class UserModel(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
+
+
+class NodeRequestModel(Base):
+    """SQLAlchemy model for NodeRequest entity."""
+
+    __tablename__ = "node_requests"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    requestor_id = Column(String, nullable=False, index=True)
+    status = Column(String, nullable=False, index=True, default="pending")  # 'pending', 'approved', 'rejected'
+    node_id = Column(String, nullable=False, index=True)
+    node_type = Column(String, nullable=False, index=True)
+    label = Column(String, nullable=False)
+    description = Column(Text, nullable=False)
+    sector = Column(String, nullable=True)
+    color = Column(String, nullable=True)
+    metadata_json = Column(Text, nullable=False, default="{}")
+    approver_id = Column(String, nullable=True)
+    approved_at = Column(DateTime, nullable=True)
+    rejection_reason = Column(Text, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert model to dictionary."""
+        metadata = json.loads(self.metadata_json) if self.metadata_json else {}
+        return {
+            "id": self.id,
+            "requestor_id": self.requestor_id,
+            "status": self.status,
+            "node_id": self.node_id,
+            "node_type": self.node_type,
+            "label": self.label,
+            "description": self.description,
+            "sector": self.sector,
+            "color": self.color,
+            "metadata": metadata,
+            "approver_id": self.approver_id,
+            "approved_at": self.approved_at.isoformat() if self.approved_at else None,
+            "rejection_reason": self.rejection_reason,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }

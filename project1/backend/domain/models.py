@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, Iterable, List, Mapping, Optional, Tuple
+from typing import Dict, Iterable, List, Literal, Mapping, Optional, Tuple
 
 # ⚠️ 重要：Node 字段定义应该与 node_schema.py 保持一致！
 # 修改字段时，请同时更新 node_schema.py 和这里的定义
@@ -118,5 +118,46 @@ class User:
     role: str = "user"  # "user" or "admin"
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
+
+@dataclass(frozen=True)
+class NodeRequest:
+    """Node creation request entity that requires approval."""
+
+    id: int
+    requestor_id: str
+    status: Literal["pending", "approved", "rejected"]
+    node_id: str
+    node_type: str
+    label: str
+    description: str
+    sector: Optional[str] = None
+    color: Optional[str] = None
+    metadata: ScalarMap = field(default_factory=dict)
+    approver_id: Optional[str] = None
+    approved_at: Optional[datetime] = None
+    rejection_reason: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    def to_dict(self) -> Dict[str, object]:
+        """Convert to dictionary for serialization."""
+        return {
+            "id": self.id,
+            "requestor_id": self.requestor_id,
+            "status": self.status,
+            "node_id": self.node_id,
+            "node_type": self.node_type,
+            "label": self.label,
+            "description": self.description,
+            "sector": self.sector,
+            "color": self.color,
+            "metadata": dict(self.metadata),
+            "approver_id": self.approver_id,
+            "approved_at": self.approved_at.isoformat() if self.approved_at else None,
+            "rejection_reason": self.rejection_reason,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
 
 

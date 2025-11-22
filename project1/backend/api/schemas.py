@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+from enum import Enum
 from typing import Any, Dict, List, Sequence
 
 from pydantic import BaseModel, Field
@@ -102,5 +104,40 @@ class RelationshipUpdateRequest(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+# Node Request Schemas
+class NodeRequestStatus(str, Enum):
+    """Status enum for node requests."""
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class NodeRequestCreateRequest(NodeCreateRequest):
+    """
+    Request schema for creating a node request.
+    Inherits from NodeCreateRequest and adds requestor_id.
+    """
+    requestor_id: str
+
+
+class NodeRequestResponse(BaseModel):
+    """Response schema for node request."""
+    id: int
+    requestor_id: str
+    status: NodeRequestStatus
+    node_id: str
+    node_type: str
+    label: str
+    description: str
+    sector: str | None = None
+    color: str | None = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    approver_id: str | None = None
+    approved_at: datetime | None = None
+    rejection_reason: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
