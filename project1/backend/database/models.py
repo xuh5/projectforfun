@@ -73,6 +73,7 @@ class RelationshipModel(Base):
     type = Column(String, nullable=True, index=True, default='works_with')  # e.g., "owns", "partners_with", "competes_with"
     strength = Column(Float, nullable=True)
     created_datetime = Column(DateTime, nullable=True, default=lambda: datetime.now(timezone.utc))
+    metadata_json = Column(Text, nullable=False, default="{}")  # JSON string for extended parameters (alpha, beta, threshold, decay, etc.)
 
     # Relationships
     source_node = relationship("NodeModel", foreign_keys=[source_id], back_populates="source_relationships")
@@ -80,12 +81,14 @@ class RelationshipModel(Base):
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert model to dictionary."""
+        metadata = json.loads(self.metadata_json) if self.metadata_json else {}
         result: Dict[str, Any] = {
             "id": self.id,
             "source_id": self.source_id,
             "target_id": self.target_id,
             "type": self.type,
             "strength": self.strength,
+            "metadata": metadata,
         }
         if self.created_datetime:
             result["created_datetime"] = self.created_datetime.isoformat()

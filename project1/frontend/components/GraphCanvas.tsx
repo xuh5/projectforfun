@@ -165,13 +165,20 @@ export default function GraphCanvas({ nodes, edges, onNodeClick, focusNodeId }: 
 
   const edgeLines = useMemo(
     () =>
-      edges.reduce<JSX.Element[]>((acc, edge) => {
-        const start = nodePositionMap.get(edge.source);
-        const end = nodePositionMap.get(edge.target);
-        if (!start || !end) return acc;
-        acc.push(<GraphEdgeLine key={edge.id} start={start} end={end} />);
-        return acc;
-      }, []),
+      edges
+        .filter((edge) => {
+          // Filter out edges that are not visible
+          // If visible is explicitly false, hide the edge
+          // If visible is undefined or true, show the edge (default behavior)
+          return edge.visible !== false;
+        })
+        .reduce<JSX.Element[]>((acc, edge) => {
+          const start = nodePositionMap.get(edge.source);
+          const end = nodePositionMap.get(edge.target);
+          if (!start || !end) return acc;
+          acc.push(<GraphEdgeLine key={edge.id} start={start} end={end} />);
+          return acc;
+        }, []),
     [edges, nodePositionMap]
   );
 

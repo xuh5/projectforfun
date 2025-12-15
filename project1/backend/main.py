@@ -266,6 +266,7 @@ async def create_relationship(
         type=relationship_data.type,
         strength=relationship_data.strength,
         created_datetime=datetime.now(timezone.utc),
+        metadata=relationship_data.metadata or {},
     )
 
     created = repository.create_relationship(relationship)
@@ -297,6 +298,8 @@ async def update_relationship(
         updates["type"] = relationship_data.type
     if relationship_data.strength is not None:
         updates["strength"] = relationship_data.strength
+    if relationship_data.metadata is not None:
+        updates["metadata"] = relationship_data.metadata
     if relationship_data.created_datetime is not None:
         from datetime import datetime
         updates["created_datetime"] = datetime.fromisoformat(relationship_data.created_datetime.replace('Z', '+00:00'))

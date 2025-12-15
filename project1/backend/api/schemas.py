@@ -27,7 +27,12 @@ class GraphEdgePayload(BaseModel):
     id: str
     source: str
     target: str
+    type: str | None = None
     strength: float | None = None
+    current_weight: float | None = None  # Computed weight considering decay and parameters
+    visible: bool = True  # Whether edge should be displayed
+    metadata: Dict[str, Any] = Field(default_factory=dict)  # Extended parameters (alpha, beta, threshold, decay, etc.)
+    created_datetime: str | None = None
 
 
 class GraphResponse(BaseModel):
@@ -90,6 +95,7 @@ class RelationshipCreateRequest(BaseModel):
     target_id: str
     type: str  # e.g., "owns", "partners_with", "competes_with"
     strength: float | None = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)  # Extended parameters (alpha, beta, threshold, decay, etc.)
     # id is auto-generated based on source_id, target_id, and type
     # created_datetime is auto-generated
 
@@ -99,6 +105,7 @@ class RelationshipUpdateRequest(BaseModel):
     target_id: str | None = None
     type: str | None = None
     strength: float | None = None
+    metadata: Dict[str, Any] | None = None  # Extended parameters (alpha, beta, threshold, decay, etc.)
     created_datetime: str | None = None  # ISO format string
 
 

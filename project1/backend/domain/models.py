@@ -14,7 +14,19 @@ MutableScalarMap = Dict[str, object]
 
 @dataclass(frozen=True)
 class Relationship:
-    """A directional edge between two nodes."""
+    """
+    A directional edge between two nodes with weight-based visibility.
+    
+    Metadata can contain:
+    - "alpha": float - Weight parameter alpha
+    - "beta": float - Weight parameter beta
+    - "threshold": float - Visibility threshold (edge is visible if current_weight >= threshold)
+    - "decay": float - Decay rate (0-1), how much weight decreases over time
+    - "decay_rate": float - Alternative decay rate parameter
+    - "initial_weight": float - Initial weight value
+    - "current_weight": float - Current computed weight (can be manually set or computed)
+    - "visible": bool - Manual visibility override (optional)
+    """
 
     id: str
     source_id: str
@@ -22,6 +34,89 @@ class Relationship:
     type: str  # e.g., "owns", "partners_with", "competes_with", etc.
     strength: Optional[float] = None
     created_datetime: Optional[datetime] = None
+    metadata: ScalarMap = field(default_factory=dict)
+    
+    def compute_weight(self) -> float:
+        """
+        Compute current weight from metadata or strength.
+        
+        Simple calculation: uses current_weight from metadata if available,
+        otherwise falls back to initial_weight or strength.
+        
+        Returns:
+            Computed weight value
+        """
+        # If current_weight is explicitly set in metadata, use it
+        if "current_weight" in self.metadata:
+            return float(self.metadata.get("current_weight", 0.0))
+        
+        # Otherwise use initial_weight or strength as base
+        initial = self.metadata.get("initial_weight")
+        if initial is None:
+            initial = self.strength if self.strength is not None else 1.0
+        
+        # Apply alpha and beta if provided (simple multiplication)
+        alpha = self.metadata.get("alpha", 1.0)
+        beta = self.metadata.get("beta", 1.0)
+        
+        weight = float(initial) * float(alpha) * float(beta)
+        
+        return weight
+    
+    def apply_decay(self) -> float:
+        """
+        Calculate what the weight would be after applying decay.
+        
+        This function does NOT modify the relationship - it's just a calculation.
+        You can use this to preview what the weight would be after decay,
+        then manually update metadata["current_weight"] if needed.
+        
+        Returns:
+            Calculated weight after decay (but doesn't save it)
+        """
+        # Get current weight (before decay)
+        current = self.compute_weight()
+        
+        # Get decay parameters from metadata
+        decay = self.metadata.get("decay", 0.0)
+        decay_rate = self.metadata.get("decay_rate", 0.0)
+        
+        # Use decay if provided, otherwise decay_rate
+        effective_decay = decay if decay != 0.0 else decay_rate
+        
+        # Simple decay formula: new_weight = current * (1 - decay)
+        # TODO: You can change this formula later when you decide on the decay logic
+        decayed_weight = current * (1 - effective_decay)
+        
+        return decayed_weight
+    
+    def is_visible(self, computed_weight: Optional[float] = None) -> bool:
+        """
+        Determine if edge should be visible based on threshold.
+        
+        Args:
+            computed_weight: Pre-computed weight (optional, will compute if not provided)
+            
+        Returns:
+            True if edge should be visible, False otherwise
+        """
+        # Check for manual visibility override
+        if "visible" in self.metadata:
+            manual_visible = self.metadata.get("visible")
+            if isinstance(manual_visible, bool):
+                return manual_visible
+        
+        # Get threshold (default: 0.0, meaning all edges visible by default)
+        threshold = self.metadata.get("threshold", 0.0)
+        
+        # Get current weight
+        if computed_weight is not None:
+            weight = computed_weight
+        else:
+            # Compute weight if not provided
+            weight = self.compute_weight()
+        
+        return weight >= threshold
 
 
 @dataclass(frozen=True)
@@ -94,16 +189,31 @@ class GraphSnapshot:
     def to_edge_payload(self) -> List[Mapping[str, object]]:
         edges: List[MutableScalarMap] = []
         for relationship in self.relationships:
+            # Compute current weight
+            current_weight = relationship.compute_weight()
+            
+            # Check visibility
+            visible = relationship.is_visible(computed_weight=current_weight)
+            
             edge: MutableScalarMap = {
                 "id": relationship.id,
                 "source": relationship.source_id,
                 "target": relationship.target_id,
                 "type": relationship.type,
+                "current_weight": current_weight,
+                "visible": visible,
             }
+            
+            # Add optional fields
             if relationship.strength is not None:
                 edge["strength"] = relationship.strength
             if relationship.created_datetime is not None:
                 edge["created_datetime"] = relationship.created_datetime.isoformat()
+            
+            # Add metadata if present
+            if relationship.metadata:
+                edge["metadata"] = dict(relationship.metadata)
+            
             edges.append(edge)
         return edges
 

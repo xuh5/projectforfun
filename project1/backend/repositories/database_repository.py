@@ -111,6 +111,9 @@ class DatabaseGraphRepository(GraphRepositoryProtocol):
             model.type = updates["type"]
         if "strength" in updates:
             model.strength = updates["strength"]
+        if "metadata" in updates:
+            import json
+            model.metadata_json = json.dumps(updates["metadata"]) if updates["metadata"] else "{}"
         if "created_datetime" in updates:
             model.created_datetime = updates["created_datetime"]
 
@@ -181,6 +184,16 @@ class DatabaseGraphRepository(GraphRepositoryProtocol):
         """Convert database model to domain Relationship."""
         # Handle backward compatibility: if type is missing (old data), default to 'works_with'
         relationship_type = getattr(model, 'type', None) or 'works_with'
+        
+        # Parse metadata JSON
+        import json
+        metadata = {}
+        if hasattr(model, 'metadata_json') and model.metadata_json:
+            try:
+                metadata = json.loads(model.metadata_json)
+            except (json.JSONDecodeError, TypeError):
+                metadata = {}
+        
         return Relationship(
             id=model.id,
             source_id=model.source_id,
@@ -188,10 +201,14 @@ class DatabaseGraphRepository(GraphRepositoryProtocol):
             type=relationship_type,
             strength=model.strength,
             created_datetime=getattr(model, 'created_datetime', None),
+            metadata=metadata,
         )
 
     def _relationship_to_model(self, relationship: Relationship) -> RelationshipModel:
         """Convert domain Relationship to database model."""
+        import json
+        metadata_json = json.dumps(dict(relationship.metadata)) if relationship.metadata else "{}"
+        
         return RelationshipModel(
             id=relationship.id,
             source_id=relationship.source_id,
@@ -199,6 +216,7 @@ class DatabaseGraphRepository(GraphRepositoryProtocol):
             type=relationship.type,
             strength=relationship.strength,
             created_datetime=relationship.created_datetime,
+            metadata_json=metadata_json,
         )
 
     # NodeRequest CRUD methods

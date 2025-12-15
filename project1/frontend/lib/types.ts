@@ -36,6 +36,9 @@ export interface GraphEdge {
   target: string;
   type?: string;  // e.g., "owns", "partners_with", "competes_with"
   strength?: number;
+  current_weight?: number;  // Computed weight considering decay and parameters
+  visible?: boolean;  // Whether edge should be displayed (default: true)
+  metadata?: Record<string, unknown>;  // Extended parameters (alpha, beta, threshold, decay, etc.)
   created_datetime?: string;  // ISO format string
 }
 
