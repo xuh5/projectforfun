@@ -1,0 +1,55 @@
+{
+  "name": "Product",
+  "description": "E-commerce product information",
+  "fields": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 100,
+      "required": true
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "price": {
+      "type": "number",
+      "min": 0.01,
+      "max": 10000.00,
+      "required": true
+    },
+    "category": {
+      "type": "string",
+      "enum": ["Electronics", "Clothing", "Books", "Home", "Sports", "Toys"],
+      "required": true
+    },
+    "inStock": {
+      "type": "boolean",
+      "required": true
+    },
+    "stockQuantity": {
+      "type": "integer",
+      "min": 0
+    },
+    "rating": {
+      "type": "number",
+      "min": 0,
+      "max": 5
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 0,
+      "maxItems": 10
+    }
+  }
+}
+

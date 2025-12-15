@@ -1,0 +1,58 @@
+{
+  "name": "User",
+  "description": "User profile data with personal information and preferences",
+  "fields": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 50,
+      "required": true
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "required": true
+    },
+    "age": {
+      "type": "integer",
+      "min": 18,
+      "max": 100
+    },
+    "address": {
+      "type": "object",
+      "fields": {
+        "street": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string",
+          "maxLength": 2
+        },
+        "zipCode": {
+          "type": "string",
+          "pattern": "^\\d{5}(-\\d{4})?$"
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "maxItems": 5
+    },
+    "isActive": {
+      "type": "boolean"
+    }
+  }
+}
+
