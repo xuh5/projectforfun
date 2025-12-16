@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Relationships - AI Generator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <style>
+        /* Additional styles for enhanced review page */
+        .stats-bar {
+            display: flex;
+            gap: 20px;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            color: white;
+        }
+        
+        .stat-item {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .relationship-card {
+            position: relative;
+            transition: all 0.3s, transform 0.2s;
+        }
+        
+        .relationship-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .relationship-card.approved::before {
+            content: "✓";
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 40px;
+            height: 40px;
+            background: #4caf50;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .quick-actions {
+            position: sticky;
+            top: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            z-index: 10;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .node-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-left: 8px;
+        }
+        
+        .node-badge.new {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .node-badge.existing {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .relationship-meta {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .progress-indicator {
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 Review & Approve Relationships</h1>
+        <p class="subtitle">Review AI-generated relationships before adding them to your graph</p>
+        
+        <!-- Source Company Info -->
+        <div id="sourceInfo" class="source-info"></div>
+        
+        <!-- Statistics Bar -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-number" id="totalCount">0</span>
+                <span class="stat-label">Total Generated</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="approvedCount">0</span>
+                <span class="stat-label">Approved</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="pendingCount">0</span>
+                <span class="stat-label">Pending Review</span>
+            </div>
+        </div>
+        
+        <!-- Quick Actions (Sticky) -->
+        <div class="quick-actions">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong>Quick Actions:</strong>
+                <span id="progressText" style="font-size: 14px; color: #666;">0 of 0 reviewed</span>
+            </div>
+            <div class="progress-indicator">
+                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-approve" onclick="approveAll()" style="flex: 1;">
+                    ✓ Approve All
+                </button>
+                <button class="btn btn-reject" onclick="rejectAll()" style="flex: 1;">
+                    ✗ Reject All
+                </button>
+            </div>
+        </div>
+        
+        <!-- Relationships List -->
+        <div id="relationshipsList"></div>
+        
+        <!-- Submit Button -->
+        <div style="position: sticky; bottom: 0; background: white; padding: 20px 0; border-top: 2px solid #e0e0e0; margin-top: 20px;">
+            <button id="submitBtn" 
+                    class="btn btn-submit" 
+                    onclick="submitApproved()" 
+                    disabled>
+                <span id="submitBtnText">Submit Approved Relationships</span>
+            </button>
+            <div id="statusMessage" class="status-message"></div>
+        </div>
+        
+        <!-- Navigation -->
+        <div style="text-align: center; margin-top: 20px; padding-bottom: 20px;">
+            <a href="/" style="color: #667eea; text-decoration: none; font-weight: 500;">
+                ← Generate More Relationships
+            </a>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

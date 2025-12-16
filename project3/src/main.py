@@ -7,7 +7,8 @@ from typing import Optional
 import click
 
 from .config import load_config
-from .generator import OpenAIClient, PromptBuilder
+from .clients import OpenAIClient
+from .generator import PromptBuilder
 from .output import OutputHandler
 from .schema import SchemaParser, SchemaValidator
 
@@ -217,6 +218,28 @@ def validate(schema: Path, data: Path):
     except Exception as e:
         click.echo(f"❌ Unexpected error: {e}", err=True)
         sys.exit(1)
+
+
+@cli.command()
+@click.option(
+    "--port",
+    "-p",
+    default=5000,
+    type=int,
+    help="Port to run the web server on (default: 5000)",
+)
+@click.option(
+    "--host",
+    default="127.0.0.1",  # 改为 127.0.0.1
+    help="Host to bind to (default: 127.0.0.1)",
+)
+def serve(port: int, host: str):
+    """Start the web server for relationship generation."""
+    from .web.app import app
+    
+    click.echo(f"🚀 Starting web server on http://{host}:{port}")
+    click.echo("📝 Open your browser and navigate to the URL above")
+    app.run(debug=True, host=host, port=port)
 
 
 if __name__ == "__main__":
