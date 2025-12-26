@@ -27,6 +27,7 @@ from backend.api.schemas import (
     SearchHit,
     SearchResponse,
     StockDataResponse,
+    NasdaqSymbolsResponse,
 )
 from backend.database import init_db
 from backend.dependencies import (
@@ -365,4 +366,17 @@ async def get_stock_data_for_node(node_id: str):
         )
     
     return StockDataResponse(**stock_data)
+
+
+@app.get("/api/nodes/symbols", response_model=NasdaqSymbolsResponse)
+async def get_all_nasdaq_symbols(
+    repository: DatabaseGraphRepository = Depends(get_database_repository),
+):
+    """
+    Get all NASDAQ symbols (node IDs) from the database.
+    Returns a JSON list of all node symbols.
+    """
+    nodes = repository.list_nodes()
+    symbols = [node.id for node in nodes]
+    return NasdaqSymbolsResponse(symbols=symbols)
 

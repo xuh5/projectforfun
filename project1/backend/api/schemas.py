@@ -176,3 +176,8 @@ class StockDataResponse(BaseModel):
     chart_data: List[ChartDataPoint]  # For lightweight-charts
 
 
+class NasdaqSymbolsResponse(BaseModel):
+    """Response schema for all node NASDAQ symbols."""
+    symbols: List[str]
+
+

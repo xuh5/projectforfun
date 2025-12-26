@@ -1,4 +1,4 @@
-"""Synthetic JSON Data Generator - A CLI tool for generating synthetic JSON data using OpenAI."""
+"""LLM Client Library - Unified interface for OpenAI, Ollama, and DeepSeek."""
 
 __version__ = "0.1.0"
 

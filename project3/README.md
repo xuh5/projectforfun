@@ -1,258 +1,268 @@
-# Synthetic JSON Data Generator
+# Project3 - Node Data Generator
 
-A CLI tool that uses OpenAI's GPT models to generate realistic synthetic JSON data based on user-defined schemas.
+Generates company node data for project1 using NASDAQ stock information and LLM-powered descriptions.
+
+## Overview
+
+This tool fetches NASDAQ stocks, filters them by criteria, and uses LLM to generate rich node data including:
+- Company descriptions (2-3 sentences)
+- Primary sector classification
+- Multiple sector tags (for metadata)
 
 ## Features
 
-- 🎯 **Schema-based generation**: Define your data structure in JSON
-- 🤖 **AI-powered**: Uses OpenAI GPT models for realistic data generation
-- ✅ **Validation**: Built-in validation against schema constraints
-- 🔧 **Flexible**: Support for nested objects, arrays, and complex constraints
-- 📝 **CLI interface**: Easy-to-use command-line tool
-- 🎨 **Pretty output**: Formatted JSON output with optional file saving
+- **Multi-LLM Support**: Use OpenAI, Ollama (local/free), or DeepSeek
+- **Progress Tracking**: Resume from interruptions, track success/failure
+- **Batch Processing**: Process stocks in configurable batches
+- **Caching**: Cache fetched data to avoid redundant API calls
+- **Flexible Filtering**: Customizable stock filtering (TODO: implement criteria)
 
-## Prerequisites
+## Setup
 
-- Python 3.8+
-- OpenAI API key ([Get one here](https://platform.openai.com/api-keys))
-
-## Installation
-
-1. **Clone or navigate to the project:**
-   ```bash
-   cd project3
-   ```
-
-2. **Create a virtual environment:**
-   ```bash
-   # Windows
-   python -m venv venv
-   venv\Scripts\activate
-
-   # macOS/Linux
-   python -m venv venv
-   source venv/bin/activate
-   ```
-
-3. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Configure environment:**
-   
-   Create a `.env` file in the `project3` directory:
-   ```env
-   OPENAI_API_KEY=your_openai_api_key_here
-   OPENAI_MODEL=gpt-4o-mini
-   ```
-
-## Quick Start
-
-### Generate a single record:
+### 1. Install Dependencies
 
 ```bash
-python -m src.main generate --schema examples/user_schema.json
+cd project3
+python -m venv venv
+
+# Windows
+venv\Scripts\activate
+
+# macOS/Linux
+source venv/bin/activate
+
+pip install -r requirements.txt
 ```
 
-### Generate multiple records:
+### 2. Configure LLM Provider
+
+Create a `.env` file in the `project3` directory:
+
+**Option A: OpenAI** (Paid)
+```env
+LLM_PROVIDER=openai
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_MODEL=gpt-4o-mini
+```
+
+**Option B: Ollama** (Free, Local)
+```env
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.2
+```
+
+Install Ollama: https://ollama.com/download
+```bash
+ollama pull llama3.2
+```
+
+**Option C: DeepSeek** (Very Cheap)
+```env
+LLM_PROVIDER=deepseek
+DEEPSEEK_API_KEY=your_deepseek_api_key_here
+DEEPSEEK_MODEL=deepseek-chat
+```
+
+## Usage
+
+### Basic Usage (Test Mode)
+
+Test with a small batch (20 stocks):
 
 ```bash
-python -m src.main generate --schema examples/user_schema.json --count 5
+python -m src.main --test
 ```
 
-### Save to file:
+### Generate Full Dataset
 
 ```bash
-python -m src.main generate --schema examples/user_schema.json --count 10 --output output.json
+python -m src.main
 ```
 
-### Validate existing data:
+### Resume After Interruption
 
 ```bash
-python -m src.main validate --schema examples/user_schema.json --data output.json
+python -m src.main --resume
 ```
 
-## Schema Format
+### Custom Batch Size
 
-Schemas are defined in JSON format with the following structure:
+```bash
+python -m src.main --batch-size 100
+```
+
+### Custom Output Directory
+
+```bash
+python -m src.main --output-dir my_output
+```
+
+### Force Refresh Data
+
+Re-fetch stock data and re-filter:
+
+```bash
+python -m src.main --force-refresh
+```
+
+## CLI Arguments
+
+- `--resume`: Resume from previous progress
+- `--batch-size N`: Batch size for processing (default: 50)
+- `--output-dir DIR`: Output directory (default: "output")
+- `--force-refresh`: Force refresh of cached data
+- `--test`: Test mode (process only first 20 stocks)
+
+## Pipeline Stages
+
+### 1. Fetch Phase
+- Fetches NASDAQ stock data using yfinance
+- Caches to `stock_list.json` for reuse
+- Extracts: symbol, company name, sector, industry
+
+### 2. Filter Phase
+- Applies filtering criteria (TODO: implement custom logic)
+- Currently accepts all stocks with valid data
+- Results saved in progress file
+
+### 3. Generate Phase
+- Processes stocks in batches
+- For each stock, LLM generates:
+  - Company description
+  - Primary sector
+  - Multiple sector tags
+- Progress saved after each batch
+- Supports resume on interruption
+
+### 4. Output Phase
+- Exports to `output/nodes_*.json`
+- Format compatible with project1 NodeCreateRequest
+- Includes generation statistics
+
+## Output Format
+
+Generated nodes match project1's schema:
 
 ```json
 {
-  "name": "SchemaName",
-  "description": "Description of what this schema represents",
-  "fields": {
-    "fieldName": {
-      "type": "string|integer|number|boolean|object|array",
-      "format": "email|uuid|date|datetime|url (optional)",
-      "required": true|false,
-      "minLength": 2 (for strings),
-      "maxLength": 50 (for strings),
-      "min": 0 (for numbers),
-      "max": 100 (for numbers),
-      "pattern": "^regex$" (for strings),
-      "enum": ["value1", "value2"] (for strings),
-      "minItems": 1 (for arrays),
-      "maxItems": 10 (for arrays),
-      "fields": { ... } (for objects - nested schema),
-      "items": { ... } (for arrays - item schema)
+  "id": "NVDA",
+  "type": "company",
+  "label": "NVIDIA Corporation",
+  "description": "NVIDIA Corporation is a leading technology company...",
+  "sector": "Technology",
+  "color": null,
+  "metadata": {
+    "sectors": ["Semiconductor", "AI", "GPU", "Data Center"]
+  }
+}
+```
+
+## File Structure
+
+```
+project3/
+├── src/
+│   ├── models.py         # NodeData dataclass
+│   ├── data_fetcher.py   # yfinance integration
+│   ├── filter.py         # Stock filtering
+│   ├── generator.py      # LLM-powered generation
+│   ├── progress.py       # Progress tracking
+│   ├── main.py           # CLI entry point
+│   ├── config.py         # Configuration loader
+│   └── clients/          # LLM clients
+├── stock_list.json       # Cached stock data
+├── progress.json         # Progress tracking
+└── output/               # Generated results
+    ├── nodes_*.json      # Node data
+    └── generation_stats.json
+```
+
+## Progress Tracking
+
+Progress is saved to `progress.json`:
+
+```json
+{
+  "all_stocks": ["AAPL", "MSFT", ...],
+  "filtered_stocks": ["NVDA", "AMD", ...],
+  "processed": {
+    "NVDA": {
+      "status": "completed",
+      "data": {...},
+      "timestamp": "2024-01-01T10:00:00"
+    }
+  },
+  "failed": {
+    "SYMBOL": {
+      "status": "failed",
+      "error": "...",
+      "retry_count": 1
     }
   }
 }
 ```
 
-### Field Types
+## Customization
 
-- **string**: Text data
-- **integer**: Whole numbers
-- **number**: Decimal numbers
-- **boolean**: True/false values
-- **object**: Nested JSON objects
-- **array**: Lists of items
+### Implement Custom Filter
 
-### Formats
+Edit `src/filter.py` to add filtering logic:
 
-- **email**: Email address validation
-- **uuid**: UUID format validation
-- **date**: Date in YYYY-MM-DD format
-- **datetime**: Date and time
-- **url**: URL format validation
-
-### Example Schema
-
-See `examples/user_schema.json` for a complete example with various field types and constraints.
-
-## CLI Commands
-
-### `generate`
-
-Generate synthetic JSON data from a schema.
-
-**Options:**
-- `--schema, -s`: Path to JSON schema file (required)
-- `--count, -c`: Number of records to generate (default: 1)
-- `--output, -o`: Output file path (default: print to console)
-- `--model, -m`: OpenAI model to use (default: from config)
-- `--api-key`: OpenAI API key (default: from env)
-- `--validate/--no-validate`: Validate generated data (default: True)
-- `--temperature, -t`: Sampling temperature 0.0-2.0 (default: 0.7)
-
-**Examples:**
-```bash
-# Generate one record
-python -m src.main generate -s examples/user_schema.json
-
-# Generate 10 records and save to file
-python -m src.main generate -s examples/product_schema.json -c 10 -o products.json
-
-# Use a different model
-python -m src.main generate -s examples/user_schema.json -m gpt-4
+```python
+def filter(self, stocks: List[Dict]) -> List[str]:
+    filtered = []
+    for stock in stocks:
+        # Add your criteria
+        if stock.get("sector") in ["Technology", "Communication Services"]:
+            if stock.get("marketCap", 0) > 1000000000:  # $1B+
+                filtered.append(stock["symbol"])
+    return filtered
 ```
 
-### `validate`
+### Customize LLM Prompts
 
-Validate existing JSON data against a schema.
+Edit prompts in `src/generator.py`:
+- `_build_system_prompt()`: System instructions
+- `_build_user_prompt()`: User prompt with context
 
-**Options:**
-- `--schema, -s`: Path to JSON schema file (required)
-- `--data, -d`: Path to JSON data file to validate (required)
+## Error Handling
 
-**Example:**
-```bash
-python -m src.main validate -s examples/user_schema.json -d output.json
-```
+- **yfinance errors**: Skips symbol, logs warning
+- **LLM errors**: Marks as failed, logs error
+- **Network errors**: Retries with exponential backoff
+- **Keyboard interrupt**: Saves progress, exits gracefully
 
-## Example Schemas
+## Tips
 
-The `examples/` directory contains sample schemas:
-
-- **user_schema.json**: User profile with nested address and tags
-- **product_schema.json**: E-commerce product information
-- **nested_schema.json**: Complex order with nested customer and items
-
-## Project Structure
-
-```
-project3/
-├── src/
-│   ├── main.py              # CLI entry point
-│   ├── config.py            # Configuration management
-│   ├── schema/
-│   │   ├── parser.py        # Schema parsing
-│   │   └── validator.py     # Data validation
-│   ├── generator/
-│   │   ├── openai_client.py # OpenAI API client
-│   │   └── prompt_builder.py # Prompt generation
-│   └── output/
-│       └── handler.py       # Output formatting
-├── examples/                # Example schema files
-├── tests/                   # Unit tests
-├── requirements.txt         # Python dependencies
-└── README.md               # This file
-```
-
-## Advanced Usage
-
-### Custom Temperature
-
-Control randomness in generation:
-```bash
-# More deterministic (lower temperature)
-python -m src.main generate -s examples/user_schema.json -t 0.3
-
-# More creative (higher temperature)
-python -m src.main generate -s examples/user_schema.json -t 1.2
-```
-
-### Skip Validation
-
-If you want to generate data without validation:
-```bash
-python -m src.main generate -s examples/user_schema.json --no-validate
-```
-
-### Using Different Models
-
-```bash
-# Use GPT-4 for higher quality
-python -m src.main generate -s examples/user_schema.json -m gpt-4
-
-# Use GPT-3.5 for faster/cheaper generation
-python -m src.main generate -s examples/user_schema.json -m gpt-3.5-turbo
-```
+1. **Start with test mode**: Validate setup with `--test` flag
+2. **Monitor progress**: Check `progress.json` for statistics
+3. **Resume on interruption**: Use `--resume` to continue
+4. **Cost optimization**: Use Ollama for free local generation
+5. **Rate limiting**: Adjust batch size if hitting API limits
 
 ## Troubleshooting
 
 ### "OPENAI_API_KEY is required"
+Create `.env` file with your API key.
 
-Make sure you've created a `.env` file with your OpenAI API key:
-```env
-OPENAI_API_KEY=sk-...
-```
+### "Cannot connect to Ollama"
+Make sure Ollama is running: `ollama serve`
 
-### "Invalid JSON in schema file"
+### "yfinance fetch failed"
+Check internet connection, try with smaller batch.
 
-Check that your schema file is valid JSON. You can validate it with:
-```bash
-python -m json.tool examples/user_schema.json
-```
+### Progress file corrupted
+Delete `progress.json` and restart (will lose progress).
 
-### "Failed to parse JSON response"
+## Next Steps
 
-The AI model sometimes returns JSON wrapped in markdown. The tool automatically handles this, but if it persists, try:
-- Using a different model (e.g., `gpt-4`)
-- Lowering the temperature
-- Simplifying your schema
-
-### Validation Errors
-
-If validation fails, check:
-- All required fields are present
-- Field types match (string, integer, etc.)
-- Constraints are met (min/max, patterns, enums)
-- Nested objects match their schema
+1. Implement custom filtering in `src/filter.py`
+2. Adjust batch size based on API limits
+3. Generate full dataset (may take hours for thousands of stocks)
+4. Import generated nodes into project1
 
 ## License
 
-This project is for educational and development purposes.
+For educational and development purposes.
 

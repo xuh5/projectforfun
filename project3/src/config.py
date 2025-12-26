@@ -1,8 +1,7 @@
-"""Configuration management for the synthetic data generator."""
+"""Configuration management for LLM clients."""
 
 import os
 from pathlib import Path
-from typing import Optional
 from dotenv import load_dotenv
 
 
@@ -18,8 +17,6 @@ def load_config() -> dict:
     
     config = {
         "llm_provider": llm_provider,
-        "project1_api_url": os.getenv("PROJECT1_API_URL", "http://localhost:8000"),
-        "project1_api_token": os.getenv("PROJECT1_API_TOKEN"),
     }
     
     # Provider-specific configuration
