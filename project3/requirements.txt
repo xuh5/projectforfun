@@ -1,10 +1,12 @@
+# LLM Clients
 openai>=1.0.0
-click>=8.0.0
-python-dotenv>=1.0.0
-pydantic>=2.0.0
-jsonschema>=4.0.0
-pytest>=7.0.0
-httpx>=0.24.0
-flask>=2.3.0
 requests>=2.31.0
+
+# Configuration
+python-dotenv>=1.0.0
+
+# Data Sources
+yfinance>=0.2.0
+pandas>=2.0.0
+openpyxl>=3.1.0
 
