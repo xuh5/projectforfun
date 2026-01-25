@@ -1,12 +1,25 @@
 # 历史记录管理 - 最多保存10条
 
 import json
+import sys
 from dataclasses import dataclass, asdict
 from datetime import datetime
 from pathlib import Path
 
 MAX_RECORDS = 10
-HISTORY_FILE = Path(__file__).parent.parent / "history.json"
+
+
+def get_data_dir() -> Path:
+    """获取数据目录（兼容打包后的 exe）"""
+    if getattr(sys, 'frozen', False):
+        # 打包后：使用 exe 所在目录
+        return Path(sys.executable).parent
+    else:
+        # 开发时：使用项目根目录
+        return Path(__file__).parent.parent
+
+
+HISTORY_FILE = get_data_dir() / "history.json"
 
 
 @dataclass

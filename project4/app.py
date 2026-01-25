@@ -157,10 +157,10 @@ def main():
     _window = webview.create_window(
         title='TextTool',
         url='ui/index.html',
-        width=900,
-        height=520,
+        width=1100,
+        height=750,
         resizable=True,
-        min_size=(800, 400),
+        min_size=(900, 750),
         js_api=api
     )
     

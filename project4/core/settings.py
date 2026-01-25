@@ -1,10 +1,22 @@
 # Settings 管理器 - 统一管理配置
 
 import json
+import sys
 from pathlib import Path
 from dataclasses import dataclass
 
-SETTINGS_FILE = Path(__file__).parent.parent / "settings.json"
+
+def get_data_dir() -> Path:
+    """获取数据目录（兼容打包后的 exe）"""
+    if getattr(sys, 'frozen', False):
+        # 打包后：使用 exe 所在目录
+        return Path(sys.executable).parent
+    else:
+        # 开发时：使用项目根目录
+        return Path(__file__).parent.parent
+
+
+SETTINGS_FILE = get_data_dir() / "settings.json"
 
 
 @dataclass
