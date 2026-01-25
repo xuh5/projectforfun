@@ -1,7 +1,9 @@
 """Filter for selecting relevant stocks based on criteria."""
 
 import logging
-from typing import Dict, List
+from typing import Dict, List, Optional, Set
+from factors.registry import FactorRegistry
+from factors.manager import FactorManager
 
 logger = logging.getLogger(__name__)
 
@@ -9,19 +11,45 @@ logger = logging.getLogger(__name__)
 class Filter:
     """Filters stocks based on specified criteria."""
     
-    def __init__(self):
-        """Initialize filter."""
-        pass
+    def __init__(self, factor_manager: Optional[FactorManager] = None, factor_registry: Optional[FactorRegistry] = None):
+        """
+        Initialize filter.
+        
+        Args:
+            factor_manager: FactorManager instance to get available factors
+            factor_registry: FactorRegistry instance (alternative to manager)
+        """
+        self.factor_manager = factor_manager
+        self.factor_registry = factor_registry or (factor_manager.registry if factor_manager else None)
+        self._available_factors: Optional[Set[str]] = None
+    
+    def get_available_factors(self) -> Set[str]:
+        """
+        Get set of available factors dynamically.
+        
+        Returns:
+            Set of available factor names
+        """
+        if self._available_factors is not None:
+            return self._available_factors
+        
+        if self.factor_manager:
+            self._available_factors = self.factor_manager.get_available_factors()
+        elif self.factor_registry:
+            self._available_factors = self.factor_registry.get_all_factors()
+        else:
+            self._available_factors = set()
+            logger.warning("No factor manager or registry provided. Available factors will be empty.")
+        
+        # Don't log here - keep it quiet
+        
+        return self._available_factors
     
     def filter(self, stocks: List[Dict]) -> List[str]:
         """
         Filter stocks based on criteria.
         
-        TODO: Implement filtering logic based on:
-        - Sector (Computer/AI/Technology related)
-        - Market cap (optional)
-        - Exchange (NASDAQ)
-        - Data completeness
+        Can use available factors dynamically to filter stocks.
         
         Args:
             stocks: List of stock data dictionaries with keys:
@@ -31,12 +59,16 @@ class Filter:
                 - industry: Specific industry
                 - marketCap: Market capitalization
                 - exchange: Stock exchange
+                - Any other factors from registered providers
         
         Returns:
             List of stock symbols that pass the filter
         """
-        # TODO: Implement actual filtering logic
-        # For now, return all symbols with basic validation
+        # Get available factors for reference
+        available_factors = self.get_available_factors()
+        
+        if available_factors:
+            logger.debug(f"Filtering with {len(available_factors)} available factors")
         
         filtered_symbols = []
         
@@ -50,16 +82,20 @@ class Filter:
                 logger.debug(f"Skipping stock with missing symbol or name: {stock}")
                 continue
             
-            # TODO: Add sector filtering
-            # Example criteria:
-            # - sector in ["Technology", "Communication Services", "Consumer Cyclical"]
-            # - industry contains "Software", "Semiconductor", "AI", etc.
-            # - marketCap > threshold
+            # Filter by marketCap > 5M (5,000,000)
+            if 'marketCap' in available_factors:
+                market_cap = stock.get("marketCap")
+                if market_cap is None:
+                    logger.debug(f"Skipping {symbol}: marketCap is missing")
+                    continue
+                # marketCap is in USD, 5M = 5,000,000
+                if market_cap <= 5_000_000:
+                    logger.debug(f"Skipping {symbol}: marketCap {market_cap} <= 5M")
+                    continue
             
-            # For now, accept all stocks that have basic data
             filtered_symbols.append(symbol)
-            logger.debug(f"Accepted: {symbol} - {name} ({sector})")
+            logger.debug(f"Accepted: {symbol} - {name} (marketCap: {stock.get('marketCap')})")
         
-        logger.info(f"Filtered {len(filtered_symbols)}/{len(stocks)} stocks")
+        # Don't log here - keep it quiet
         return filtered_symbols
 

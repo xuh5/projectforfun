@@ -9,11 +9,12 @@ from typing import Optional
 
 from .config import load_config
 from .clients import OpenAIClient, OllamaClient, DeepSeekClient
-from .data_fetcher import DataFetcher
+from .company_sector_fetcher import CompanySectorFetcher
 from .filter import Filter
 from .generator import NodeGenerator
 from .progress import ProgressTracker
 from .models import NodeData
+from .factors.manager import FactorManager
 
 # Configure logging
 logging.basicConfig(
@@ -55,14 +56,14 @@ def get_llm_client(config: dict):
         raise ValueError(f"Unknown LLM provider: {provider}")
 
 
-def fetch_phase(data_fetcher: DataFetcher, force_refresh: bool = False, sector: Optional[str] = None) -> list:
+def fetch_phase(data_fetcher: CompanySectorFetcher, force_refresh: bool = False, sector: Optional[str] = None) -> list:
     """
     Fetch stock data using two-stage process:
     1. Get stock symbols from Excel file, optionally filtered by sector (saves to symbol_set.json)
     2. Fetch detailed data for symbols (saves to stock_list.json)
     
     Args:
-        data_fetcher: DataFetcher instance
+        data_fetcher: CompanySectorFetcher instance
         force_refresh: Force re-fetch even if cache exists
         sector: Optional sector name to filter stocks (e.g., "Technology", "Healthcare")
         
@@ -310,8 +311,19 @@ def main(
         # Initialize components
         logger.info("Initializing components...")
         llm_client = get_llm_client(config)
-        data_fetcher = DataFetcher(excel_file=excel_file)
-        filter_obj = Filter()
+        data_fetcher = CompanySectorFetcher(excel_file=excel_file)
+        
+        # Initialize factor manager (optional - for dynamic factor support)
+        factor_manager = None
+        try:
+            factor_manager = FactorManager()
+            factor_manager.initialize_providers()
+            logger.info(f"Factor system initialized with {len(factor_manager.list_enabled_providers())} provider(s)")
+            filter_obj = Filter(factor_manager=factor_manager)
+        except Exception as e:
+            logger.warning(f"Failed to initialize factor manager: {e}. Using Filter without factor support.")
+            filter_obj = Filter()
+        
         generator = NodeGenerator(llm_client)
         progress_tracker = ProgressTracker()
         
@@ -335,6 +347,24 @@ def main(
         if not filtered_symbols:
             logger.error("No stocks passed the filter!")
             return
+        
+        # Phase 2.5: Fetch and save factors for filtered stocks
+        if factor_manager:
+            try:
+                logger.info("Fetching factors for filtered stocks...")
+                factors_data = factor_manager.fetch_all_factors(filtered_symbols)
+                
+                # Get filtered stocks with their data
+                stocks_map = {s["symbol"]: s for s in stocks}
+                filtered_stocks = [stocks_map[symbol] for symbol in filtered_symbols if symbol in stocks_map]
+                
+                # Save to Excel using output_dir parameter
+                output_path = Path(output_dir)
+                output_file = str(output_path / "filtered_stocks_with_factors.xlsx")
+                factor_manager.save_factors_excel(factors_data, filtered_stocks, output_file)
+                logger.info(f"✓ Saved factors data to {output_file}")
+            except Exception as e:
+                logger.warning(f"Failed to fetch/save factors: {e}")
         
         # Phase 3: Generate
         generate_phase(

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TextTool</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app">
+    <!-- 左侧：输入 + 选项 -->
+    <div class="left-panel">
+      <div class="panel-header">
+        <div class="title">
+          <span class="logo">⚡</span>
+          TextTool
+        </div>
+        <button class="settings-btn" onclick="toggleSettings()" title="Settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="input-section">
+        <div class="label">Selected Text</div>
+        <div class="input-preview" id="inputText">
+          <span class="placeholder">Press Ctrl+Q to capture selected text...</span>
+        </div>
+      </div>
+
+      <div class="options-section">
+        <div class="label">Choose Action</div>
+        <div class="options" id="optionsList">
+          <!-- Options will be loaded dynamically -->
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button class="run-btn" onclick="runAction()" id="runBtn" disabled>
+          <span>Run</span>
+          <kbd>↵</kbd>
+        </button>
+      </div>
+    </div>
+
+    <!-- 中间：结果 -->
+    <div class="center-panel">
+      <div class="panel-header">
+        <div class="label">Result</div>
+        <span class="status" id="resultStatus"></span>
+      </div>
+      <div class="result-content" id="resultContent">
+        <div class="empty-state">
+          <div class="empty-icon">📋</div>
+          <div class="empty-text">Select text and choose an action to get started</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧：历史 -->
+    <div class="right-panel">
+      <div class="panel-header">
+        <div class="label">History</div>
+        <span class="count" id="historyCount">0 / 10</span>
+      </div>
+      <div class="history-list" id="historyList">
+        <div class="empty-history">No history yet</div>
+      </div>
+
+      <div class="shortcuts">
+        <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>Q</kbd> Capture</div>
+        <div class="shortcut"><kbd>Enter</kbd> Run</div>
+        <div class="shortcut"><kbd>Esc</kbd> Close</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>⚙️ Settings</h3>
+        <button class="close-btn" onclick="toggleSettings()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-item">
+          <label>API Endpoint</label>
+          <input type="text" id="apiUrl" placeholder="https://api.openai.com/v1/chat/completions">
+        </div>
+        <div class="setting-item">
+          <label>API Key</label>
+          <div class="input-with-btn">
+            <input type="password" id="apiKey" placeholder="sk-xxxxxxxxxxxxxxxx">
+            <button class="toggle-visibility" onclick="toggleApiKeyVisibility()">👁</button>
+          </div>
+        </div>
+        <div class="setting-item">
+          <label>Model</label>
+          <input type="text" id="model" placeholder="gpt-3.5-turbo">
+        </div>
+        <div class="setting-item">
+          <label>Timeout (seconds)</label>
+          <input type="number" id="timeout" value="30" min="5" max="120">
+        </div>
+        <div class="setting-item toggle-item">
+          <label>Mock Mode</label>
+          <div class="toggle-wrapper">
+            <span class="toggle-hint">Use simulated responses (no API call)</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="mockMode" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="setting-item">
+          <label>Hotkey</label>
+          <input type="text" value="Ctrl+Q" readonly class="readonly">
+        </div>
+        <div class="setting-actions">
+          <button class="save-btn" onclick="saveSettings()">Save Settings</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-text">Processing...</div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
