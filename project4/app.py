@@ -1,5 +1,5 @@
 """
-TextTool - GUI 入口
+Fork CodeReview - GUI 入口
 使用 PyWebView 创建桌面窗口
 """
 
@@ -32,27 +32,43 @@ class Api:
         return [{"key": k, "name": n} for k, n in get_option_names()]
     
     def process_text(self, text: str, option_key: str):
-        """处理文字"""
-        prompt_data = build_prompt(text, option_key)
-        if not prompt_data:
-            return {"content": "Invalid option", "valid": False}
+        """处理单个文字（兼容旧调用）"""
+        result = self.process_batch(text, [option_key])
+        if result["results"]:
+            return result["results"][0]
+        return {"content": "Invalid option", "valid": False}
+    
+    def process_batch(self, text: str, option_keys: list):
+        """批量处理多个 action"""
+        results = []
         
-        raw_response, parse_result = call_api(prompt_data)
+        for option_key in option_keys:
+            prompt_data = build_prompt(text, option_key)
+            if not prompt_data:
+                results.append({
+                    "option": option_key,
+                    "content": "Invalid option",
+                    "valid": False
+                })
+                continue
+            
+            raw_response, parse_result = call_api(prompt_data)
+            results.append({
+                "option": prompt_data["config"].name,
+                "content": raw_response,
+                "valid": parse_result.success,
+                "metadata": parse_result.metadata
+            })
         
+        # 保存到历史记录
         history = get_history()
         history.add(
             input_text=text,
-            option=prompt_data["config"].name,
-            prompt=prompt_data["user"],
-            result=raw_response,
-            valid=parse_result.success
+            options=option_keys,
+            results=results
         )
         
-        return {
-            "content": raw_response,
-            "valid": parse_result.success,
-            "metadata": parse_result.metadata
-        }
+        return {"results": results}
     
     def get_history(self):
         """获取历史记录"""
@@ -63,8 +79,11 @@ class Api:
                 "id": r.id,
                 "timestamp": r.timestamp,
                 "input_text": r.input_text,
+                "options": r.options,
+                "results": r.results,
+                "all_valid": r.all_valid,
+                # 兼容旧格式
                 "option": r.option,
-                "result": r.result,
                 "valid": r.valid
             }
             for r in records
@@ -78,6 +97,10 @@ class Api:
                 return {
                     "id": r.id,
                     "input_text": r.input_text,
+                    "options": r.options,
+                    "results": r.results,
+                    "all_valid": r.all_valid,
+                    # 兼容旧格式
                     "option": r.option,
                     "result": r.result,
                     "valid": r.valid
@@ -110,6 +133,17 @@ class Api:
         """手动捕获选中文字（前端调用）"""
         text = get_selected_text()
         return text if text and text.strip() else ""
+    
+    def delete_record(self, record_id: int):
+        """删除单条历史记录"""
+        history = get_history()
+        return history.delete(record_id)
+    
+    def clear_history(self):
+        """清空所有历史记录"""
+        history = get_history()
+        history.clear()
+        return True
 
 
 def on_hotkey():
@@ -155,7 +189,7 @@ def main():
     
     # 创建窗口
     _window = webview.create_window(
-        title='TextTool',
+        title='Fork CodeReview',
         url='ui/index.html',
         width=1100,
         height=750,

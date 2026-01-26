@@ -1,56 +1,30 @@
 [
   {
     "id": 1,
-    "timestamp": "2026-01-23 02:41:22",
-    "input_text": "\r\ndef get_option_names() -> list[tuple[str, str]]:\r\n    \"\"\"获取所有选项的 (key, name) 列表\"\"\"\r\n    return [(k",
-    "option": "Explain whole code",
-    "prompt_preview": "Please explain the following code:\n\n```\n\r\ndef get_option_names() -> list[tuple[str, str]]:\r\n    \"\"\"获取所有选项的 (key, name) 列表\"\"\"\r\n    return [(k, v.name) for k, v in PROMPT_CONFIGS\n```\n\nRequirements:\n1. E",
-    "result": "# Response\n\nPlease explain the following code:\n\n```\n\r\ndef get_option_names() -> list[tuple[str, str]]:\r\n    \"\"\"获...",
-    "valid": true
-  },
-  {
-    "id": 2,
-    "timestamp": "2026-01-23 03:12:30",
-    "input_text": "\r\ndef get_option_names() -> list[tuple[str, str]]:\r\n    \"\"\"获取所有选项的 (key, name) 列表\"\"\"\r\n    return [(k",
-    "option": "Explain whole code",
-    "prompt_preview": "Please explain the following code:\n\n```\n\r\ndef get_option_names() -> list[tuple[str, str]]:\r\n    \"\"\"获取所有选项的 (key, name) 列表\"\"\"\r\n    return [(k\n```\n\nRequirements:\n1. Explain the overall purpose\n2. Descri",
-    "result": "## Code Explanation\n\nThis code implements a solution for the given problem.\n\n### Overview\nThe main purpose is to process input and return transformed output.\n\n### Key Points\n- Uses efficient algorithms\n- Handles edge cases properly\n- Well-structured code\n\n### Input Sample\n```\nPlease explain the following code:\n\n```\n\r\ndef get_option_names() -> list[tuple[str, str]]:\r\n    \"\"\"获...\n```",
-    "valid": true
-  },
-  {
-    "id": 3,
-    "timestamp": "2026-01-23 03:13:41",
-    "input_text": "\r\ndef get_option_names() -> list[tuple[str, str]]:\r\n    \"\"\"获取所有选项的 (key, name) 列表\"\"\"\r\n    return [(k",
-    "option": "Explain whole code",
-    "prompt_preview": "Please explain the following code:\n\n```\n\r\ndef get_option_names() -> list[tuple[str, str]]:\r\n    \"\"\"获取所有选项的 (key, name) 列表\"\"\"\r\n    return [(k\n```\n\nRequirements:\n1. Explain the overall purpose\n2. Descri",
-    "result": "## Code Explanation\n\nThis code implements a solution for the given problem.\n\n### Overview\nThe main purpose is to process input and return transformed output.\n\n### Key Points\n- Uses efficient algorithms\n- Handles edge cases properly\n- Well-structured code\n\n### Input Sample\n```\nPlease explain the following code:\n\n```\n\r\ndef get_option_names() -> list[tuple[str, str]]:\r\n    \"\"\"获...\n```",
-    "valid": true
-  },
-  {
-    "id": 4,
-    "timestamp": "2026-01-23 03:13:53",
-    "input_text": "\r\ndef get_option_names() -> list[tuple[str, str]]:\r\n    \"\"\"获取所有选项的 (key, name) 列表\"\"\"\r\n    return [(k",
-    "option": "Explain whole code",
-    "prompt_preview": "Please explain the following code:\n\n```\n\r\ndef get_option_names() -> list[tuple[str, str]]:\r\n    \"\"\"获取所有选项的 (key, name) 列表\"\"\"\r\n    return [(k\n```\n\nRequirements:\n1. Explain the overall purpose\n2. Descri",
-    "result": "## Code Explanation\n\nThis code implements a solution for the given problem.\n\n### Overview\nThe main purpose is to process input and return transformed output.\n\n### Key Points\n- Uses efficient algorithms\n- Handles edge cases properly\n- Well-structured code\n\n### Input Sample\n```\nPlease explain the following code:\n\n```\n\r\ndef get_option_names() -> list[tuple[str, str]]:\r\n    \"\"\"获...\n```",
-    "valid": true
-  },
-  {
-    "id": 5,
-    "timestamp": "2026-01-23 03:17:49",
-    "input_text": "t parse_response, format_parse_result\r\nfrom .history import get_history, show_history\r\nfrom .setting",
-    "option": "Explain Each Function",
-    "prompt_preview": "Analyze each function in the following code:\n\n```\nt parse_response, format_parse_result\r\nfrom .history import get_history, show_history\r\nfrom .settings import get_settings, save_settin\n```\n\nFor EACH f",
-    "result": "## Function Analysis\n\n1. **main()**: Entry point of the program\n   - Initializes variables\n   - Calls helper functions\n   \n2. **helper()**: Utility function\n   - Performs data transformation\n   - Returns processed result",
-    "valid": true
-  },
-  {
-    "id": 6,
-    "timestamp": "2026-01-23 03:18:10",
-    "input_text": "\r\n@dataclass\r\nclass Record:\r\n    \"\"\"单条记录\"\"\"\r\n    id: int\r\n    timestamp: str\r\n    input_text: str\r\n ",
-    "option": "Explain Each Function",
-    "prompt_preview": "Analyze each function in the following code:\n\n```\n\r\n@dataclass\r\nclass Record:\r\n    \"\"\"单条记录\"\"\"\r\n    id: int\r\n    timestamp: str\r\n    input_text: str\r\n    option: str\r\n    prompt_preview: str\r\n    resul",
-    "result": "## Function Analysis\n\n1. **main()**: Entry point of the program\n   - Initializes variables\n   - Calls helper functions\n   \n2. **helper()**: Utility function\n   - Performs data transformation\n   - Returns processed result",
-    "valid": true
+    "timestamp": "2026-01-25 19:26:16",
+    "input_text": "\r\nUnder the following terms:\r\n- Attribution — You must give appropriate credit.\r\n- NonCommercial — Y",
+    "options": [
+      "complexity",
+      "make_examples",
+      "explain_functions"
+    ],
+    "results": [
+      {
+        "option": "Analyze Time/Space Complexity",
+        "content": "[Error] Request URL is missing an 'http://' or 'https://' protocol.",
+        "valid": false
+      },
+      {
+        "option": "Make example for selected functions",
+        "content": "[Error] Request URL is missing an 'http://' or 'https://' protocol.",
+        "valid": false
+      },
+      {
+        "option": "Explain Each Function",
+        "content": "[Error] Request URL is missing an 'http://' or 'https://' protocol.",
+        "valid": false
+      }
+    ],
+    "all_valid": false
   }
 ]

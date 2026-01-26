@@ -23,15 +23,35 @@ HISTORY_FILE = get_data_dir() / "history.json"
 
 
 @dataclass
+class ActionResult:
+    """单个 action 的结果"""
+    option: str
+    content: str
+    valid: bool
+
+
+@dataclass
 class Record:
-    """单条记录"""
+    """单条记录（可包含多个 action 结果）"""
     id: int
     timestamp: str
     input_text: str
-    option: str
-    prompt_preview: str
-    result: str
-    valid: bool
+    options: list[str]           # 多个 action keys
+    results: list[dict]          # 多个结果 [{option, content, valid}, ...]
+    all_valid: bool              # 是否全部成功
+    
+    # 兼容旧格式的属性
+    @property
+    def option(self) -> str:
+        return self.options[0] if self.options else ""
+    
+    @property
+    def result(self) -> str:
+        return self.results[0].get("content", "") if self.results else ""
+    
+    @property
+    def valid(self) -> bool:
+        return self.all_valid
 
 
 class History:
@@ -42,16 +62,33 @@ class History:
         self._next_id = 1
         self._load()
     
-    def add(self, input_text: str, option: str, prompt: str, result: str, valid: bool) -> Record:
-        """添加新记录"""
+    def add(self, input_text: str, options: list[str], results: list[dict]) -> Record:
+        """添加新记录（支持多个 action）
+        
+        Args:
+            input_text: 输入文本
+            options: action key 列表
+            results: 结果列表 [{option, content, valid}, ...]
+        """
+        # 截断内容
+        truncated_results = [
+            {
+                "option": r.get("option", ""),
+                "content": r.get("content", "")[:500],
+                "valid": r.get("valid", False)
+            }
+            for r in results
+        ]
+        
+        all_valid = all(r.get("valid", False) for r in results)
+        
         record = Record(
             id=self._next_id,
             timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            input_text=input_text[:100],  # 截断保存
-            option=option,
-            prompt_preview=prompt[:200],
-            result=result[:500],
-            valid=valid
+            input_text=input_text[:100],
+            options=options,
+            results=truncated_results,
+            all_valid=all_valid
         )
         
         self.records.append(record)
@@ -72,22 +109,61 @@ class History:
         """获取最近 n 条记录"""
         return list(reversed(self.records[-n:]))
     
+    def delete(self, record_id: int) -> bool:
+        """删除指定记录"""
+        for i, r in enumerate(self.records):
+            if r.id == record_id:
+                self.records.pop(i)
+                self._save()
+                return True
+        return False
+    
     def clear(self):
         """清空所有记录"""
         self.records = []
+        self._next_id = 1
         self._save()
     
     def _save(self):
         """保存到文件"""
-        data = [asdict(r) for r in self.records]
+        data = []
+        for r in self.records:
+            data.append({
+                "id": r.id,
+                "timestamp": r.timestamp,
+                "input_text": r.input_text,
+                "options": r.options,
+                "results": r.results,
+                "all_valid": r.all_valid
+            })
         HISTORY_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2))
     
     def _load(self):
-        """从文件加载"""
+        """从文件加载（兼容旧格式）"""
         if HISTORY_FILE.exists():
             try:
                 data = json.loads(HISTORY_FILE.read_text())
-                self.records = [Record(**r) for r in data]
+                self.records = []
+                for r in data:
+                    # 兼容旧格式：单个 option/result
+                    if "option" in r and "options" not in r:
+                        r["options"] = [r.get("option", "")]
+                        r["results"] = [{
+                            "option": r.get("option", ""),
+                            "content": r.get("result", ""),
+                            "valid": r.get("valid", False)
+                        }]
+                        r["all_valid"] = r.get("valid", False)
+                    
+                    self.records.append(Record(
+                        id=r["id"],
+                        timestamp=r["timestamp"],
+                        input_text=r["input_text"],
+                        options=r.get("options", []),
+                        results=r.get("results", []),
+                        all_valid=r.get("all_valid", False)
+                    ))
+                
                 if self.records:
                     self._next_id = max(r.id for r in self.records) + 1
             except Exception:
@@ -118,8 +194,12 @@ def show_history(n: int = 5):
     print("-" * 50)
     
     for r in records:
-        status = "✓" if r.valid else "✗"
-        print(f"#{r.id} [{r.timestamp}] {r.option}")
+        status = "✓" if r.all_valid else "✗"
+        actions = ", ".join(r.options)
+        print(f"#{r.id} [{r.timestamp}] [{actions}]")
         print(f"   输入: {r.input_text[:40]}...")
-        print(f"   结果: {r.result[:60]}... [{status}]")
+        for res in r.results:
+            res_status = "✓" if res.get("valid") else "✗"
+            content = res.get("content", "")[:50]
+            print(f"   - {res.get('option')}: {content}... [{res_status}]")
         print()

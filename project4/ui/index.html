@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TextTool</title>
+  <title>Fork CodeReview</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
 </head>
@@ -13,13 +13,17 @@
     <div class="left-panel">
       <div class="panel-header">
         <div class="title">
-          <span class="logo">⚡</span>
-          TextTool
+          <svg class="logo" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="18" cy="18" r="3"></circle>
+            <circle cx="6" cy="6" r="3"></circle>
+            <path d="M6 21V9a9 9 0 0 0 9 9"></path>
+          </svg>
+          Fork CodeReview
         </div>
         <button class="settings-btn" onclick="toggleSettings()" title="Settings">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="3"></circle>
-            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
           </svg>
         </button>
       </div>
@@ -50,8 +54,22 @@
     <div class="center-panel">
       <div class="panel-header">
         <div class="label">Result</div>
-        <span class="status" id="resultStatus"></span>
+        <div class="header-actions">
+          <button class="copy-btn" id="copyBtn" onclick="copyResult()" title="Copy result" style="display: none;">
+            <span class="copy-icon">📋</span>
+            <span class="copy-text">Copy</span>
+          </button>
+          <span class="status" id="resultStatus"></span>
+        </div>
       </div>
+      
+      <!-- 结果切换栏：点击切换查看不同 action 的结果 -->
+      <div class="result-tabs-bar" id="resultTabsBar" style="display: none;">
+        <div class="result-tabs" id="resultTabs">
+          <!-- 动态生成 -->
+        </div>
+      </div>
+      
       <div class="result-content" id="resultContent">
         <div class="empty-state">
           <div class="empty-icon">📋</div>
@@ -64,7 +82,12 @@
     <div class="right-panel">
       <div class="panel-header">
         <div class="label">History</div>
-        <span class="count" id="historyCount">0 / 10</span>
+        <div class="history-actions">
+          <span class="count" id="historyCount">0 / 10</span>
+          <button class="clear-all-btn" id="clearAllBtn" onclick="clearAllHistory()" title="Clear all history">
+            🗑️
+          </button>
+        </div>
       </div>
       <div class="history-list" id="historyList">
         <div class="empty-history">No history yet</div>
@@ -80,47 +103,119 @@
 
   <!-- Settings Modal -->
   <div class="modal-overlay" id="settingsModal">
-    <div class="modal-content">
+    <div class="modal-content settings-modal">
       <div class="modal-header">
         <h3>⚙️ Settings</h3>
         <button class="close-btn" onclick="toggleSettings()">×</button>
       </div>
-      <div class="modal-body">
-        <div class="setting-item">
-          <label>API Endpoint</label>
-          <input type="text" id="apiUrl" placeholder="https://api.openai.com/v1/chat/completions">
+      <div class="modal-layout">
+        <!-- Left: Navigation -->
+        <div class="settings-nav">
+          <button class="nav-item active" data-tab="api" onclick="switchSettingsTab('api')">
+            <span class="nav-icon">🔌</span>
+            <span>API</span>
+          </button>
+          <button class="nav-item" data-tab="language" onclick="switchSettingsTab('language')">
+            <span class="nav-icon">🌐</span>
+            <span>Language</span>
+          </button>
+          <button class="nav-item" data-tab="hotkey" onclick="switchSettingsTab('hotkey')">
+            <span class="nav-icon">⌨️</span>
+            <span>Hotkey</span>
+          </button>
         </div>
-        <div class="setting-item">
-          <label>API Key</label>
-          <div class="input-with-btn">
-            <input type="password" id="apiKey" placeholder="sk-xxxxxxxxxxxxxxxx">
-            <button class="toggle-visibility" onclick="toggleApiKeyVisibility()">👁</button>
+
+        <!-- Right: Content -->
+        <div class="settings-content">
+          <!-- API Tab -->
+          <div class="settings-tab active" id="tab-api">
+            <div class="tab-title">API Configuration</div>
+            <div class="setting-item">
+              <label>API Endpoint</label>
+              <input type="text" id="apiUrl" placeholder="https://api.openai.com/v1/chat/completions">
+            </div>
+            <div class="setting-item">
+              <label>API Key</label>
+              <div class="input-with-btn">
+                <input type="password" id="apiKey" placeholder="sk-xxxxxxxxxxxxxxxx">
+                <button class="toggle-visibility" onclick="toggleApiKeyVisibility()">👁</button>
+              </div>
+            </div>
+            <div class="setting-item">
+              <label>Model</label>
+              <input type="text" id="model" placeholder="gpt-3.5-turbo">
+            </div>
+            <div class="setting-item">
+              <label>Timeout (seconds)</label>
+              <input type="number" id="timeout" value="30" min="5" max="120">
+            </div>
+            <div class="setting-item toggle-item">
+              <label>Mock Mode</label>
+              <div class="toggle-wrapper">
+                <span class="toggle-hint">Use simulated responses (no API call)</span>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="mockMode" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="setting-item">
-          <label>Model</label>
-          <input type="text" id="model" placeholder="gpt-3.5-turbo">
-        </div>
-        <div class="setting-item">
-          <label>Timeout (seconds)</label>
-          <input type="number" id="timeout" value="30" min="5" max="120">
-        </div>
-        <div class="setting-item toggle-item">
-          <label>Mock Mode</label>
-          <div class="toggle-wrapper">
-            <span class="toggle-hint">Use simulated responses (no API call)</span>
-            <label class="toggle-switch">
-              <input type="checkbox" id="mockMode" checked>
-              <span class="toggle-slider"></span>
-            </label>
+
+          <!-- Language Tab -->
+          <div class="settings-tab" id="tab-language">
+            <div class="tab-title">Language Settings</div>
+            <div class="setting-item">
+              <label>Interface Language</label>
+              <select id="uiLanguage" class="setting-select">
+                <option value="en">English</option>
+                <option value="zh">中文</option>
+              </select>
+            </div>
+            <div class="setting-item">
+              <label>Response Language</label>
+              <select id="responseLanguage" class="setting-select">
+                <option value="auto">Auto (follow input)</option>
+                <option value="en">English</option>
+                <option value="zh">中文</option>
+              </select>
+              <div class="setting-hint">The language AI uses to respond</div>
+            </div>
           </div>
-        </div>
-        <div class="setting-item">
-          <label>Hotkey</label>
-          <input type="text" value="Ctrl+Q" readonly class="readonly">
-        </div>
-        <div class="setting-actions">
-          <button class="save-btn" onclick="saveSettings()">Save Settings</button>
+
+          <!-- Hotkey Tab -->
+          <div class="settings-tab" id="tab-hotkey">
+            <div class="tab-title">Hotkey Settings</div>
+            <div class="setting-item">
+              <label>Capture Text</label>
+              <div class="hotkey-input">
+                <input type="text" id="hotkeyCapture" value="Ctrl+Q" readonly class="readonly">
+                <span class="hotkey-hint">Global hotkey to capture selected text</span>
+              </div>
+            </div>
+            <div class="setting-item">
+              <label>Quick Run</label>
+              <div class="hotkey-input">
+                <input type="text" id="hotkeyRun" value="Enter" readonly class="readonly">
+                <span class="hotkey-hint">Run selected action</span>
+              </div>
+            </div>
+            <div class="setting-item">
+              <label>Close Window</label>
+              <div class="hotkey-input">
+                <input type="text" id="hotkeyClose" value="Esc" readonly class="readonly">
+                <span class="hotkey-hint">Close settings or window</span>
+              </div>
+            </div>
+            <div class="coming-soon">
+              <span>🚧</span>
+              <span>Custom hotkey configuration coming soon...</span>
+            </div>
+          </div>
+
+          <!-- Save Button -->
+          <div class="setting-actions">
+            <button class="save-btn" onclick="saveSettings()">Save Settings</button>
+          </div>
         </div>
       </div>
     </div>
