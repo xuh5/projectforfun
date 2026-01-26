@@ -373,6 +373,10 @@ function toggleApiKeyVisibility() {
 
 async function loadSettings() {
   try {
+    // 先加载模型列表
+    await loadModels();
+    
+    // 再加载设置
     const settings = await pywebview.api.get_settings();
     document.getElementById('apiUrl').value = settings.api_url || '';
     document.getElementById('apiKey').value = settings.api_key || '';
@@ -382,6 +386,22 @@ async function loadSettings() {
     updateModeIndicator(settings.mock_mode !== false);
   } catch (e) {
     console.error('Failed to load settings:', e);
+  }
+}
+
+// 加载模型列表
+async function loadModels() {
+  try {
+    const groups = await pywebview.api.get_models();
+    const select = document.getElementById('model');
+    
+    select.innerHTML = groups.map(g => `
+      <optgroup label="${g.group}">
+        ${g.models.map(m => `<option value="${m.value}">${m.name}</option>`).join('')}
+      </optgroup>
+    `).join('');
+  } catch (e) {
+    console.error('Failed to load models:', e);
   }
 }
 

@@ -30,7 +30,19 @@ def call_api(prompt_data: dict) -> tuple[str, ParseResult]:
 
 
 def _call_real_api(prompt_data: dict, settings) -> str:
-    """调用真实 API"""
+    """调用真实 API（自动识别 OpenAI/Claude 格式）"""
+    
+    # 检测是否是 Claude API
+    is_claude = "anthropic" in settings.api_url.lower()
+    
+    if is_claude:
+        return _call_claude_api(prompt_data, settings)
+    else:
+        return _call_openai_api(prompt_data, settings)
+
+
+def _call_openai_api(prompt_data: dict, settings) -> str:
+    """调用 OpenAI 兼容 API（OpenAI/Grok/Gemini）"""
     headers = {
         "Authorization": f"Bearer {settings.api_key}",
         "Content-Type": "application/json"
@@ -56,6 +68,43 @@ def _call_real_api(prompt_data: dict, settings) -> str:
             
             # 其他格式尝试
             return data.get("result", data.get("content", str(data)))
+            
+    except httpx.TimeoutException:
+        return "[Error] API request timeout"
+    except httpx.HTTPStatusError as e:
+        return f"[Error] HTTP {e.response.status_code}: {e.response.text[:200]}"
+    except Exception as e:
+        return f"[Error] {str(e)}"
+
+
+def _call_claude_api(prompt_data: dict, settings) -> str:
+    """调用 Claude (Anthropic) API"""
+    headers = {
+        "x-api-key": settings.api_key,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json"
+    }
+    
+    payload = {
+        "model": settings.model,
+        "max_tokens": 4096,
+        "system": prompt_data["system"],
+        "messages": [
+            {"role": "user", "content": prompt_data["user"]}
+        ]
+    }
+    
+    try:
+        with httpx.Client(timeout=settings.timeout) as client:
+            resp = client.post(settings.api_url, headers=headers, json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+            
+            # Claude 格式：content 是数组
+            if "content" in data and isinstance(data["content"], list):
+                return data["content"][0].get("text", "")
+            
+            return str(data)
             
     except httpx.TimeoutException:
         return "[Error] API request timeout"

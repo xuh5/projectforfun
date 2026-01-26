@@ -17,6 +17,7 @@ from core import (
     get_settings,
     update_settings,
     Settings,
+    get_available_models,
 )
 from core.prompt_builder import get_option_names
 
@@ -117,6 +118,10 @@ class Api:
             "timeout": s.timeout,
             "mock_mode": s.mock_mode
         }
+    
+    def get_models(self):
+        """获取可用的模型列表"""
+        return get_available_models()
     
     def save_settings(self, data: dict):
         """保存设置"""

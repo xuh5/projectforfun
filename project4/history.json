@@ -1,30 +1,30 @@
 [
   {
     "id": 1,
-    "timestamp": "2026-01-25 19:26:16",
-    "input_text": "\r\nUnder the following terms:\r\n- Attribution — You must give appropriate credit.\r\n- NonCommercial — Y",
+    "timestamp": "2026-01-26 01:19:49",
+    "input_text": "，大家已经看腻了那些由 AI 生成的、大而全的平庸软件。一个真实的程序员为了解决真实问题而手写的代码反而很有生命力。",
     "options": [
-      "complexity",
+      "unit_tests",
       "make_examples",
-      "explain_functions"
+      "complexity"
     ],
     "results": [
       {
-        "option": "Analyze Time/Space Complexity",
-        "content": "[Error] Request URL is missing an 'http://' or 'https://' protocol.",
-        "valid": false
+        "option": "Generate Unit Tests",
+        "content": "```python\nimport pytest\n\ndef test_example():\n    \"\"\"Test basic functionality\"\"\"\n    assert 1 + 1 == 2\n\ndef test_edge_case():\n    \"\"\"Test edge case\"\"\"\n    assert [] == []\n    assert \"\" == \"\"\n```",
+        "valid": true
       },
       {
         "option": "Make example for selected functions",
-        "content": "[Error] Request URL is missing an 'http://' or 'https://' protocol.",
-        "valid": false
+        "content": "## Usage Examples\n\n### Basic Usage\n```python\nresult = my_function(\"hello\")\nprint(result)  # Output: \"HELLO\"\n```\n\n### Advanced Usage\n```python\n# With options\nresult = my_function(\"hello\", uppercase=True, trim=True)\nprint(result)  # Output: \"HELLO\"\n```",
+        "valid": true
       },
       {
-        "option": "Explain Each Function",
-        "content": "[Error] Request URL is missing an 'http://' or 'https://' protocol.",
-        "valid": false
+        "option": "Analyze Time/Space Complexity",
+        "content": "## Complexity Analysis\n\n| Function | Time Complexity | Space Complexity |\n|----------|----------------|------------------|\n| main | O(n) | O(1) |\n| helper | O(log n) | O(n) |\n\n**Explanation:**\n- `main`: Linear time due to single loop iteration\n- `helper`: Logarithmic time with recursive calls",
+        "valid": true
       }
     ],
-    "all_valid": false
+    "all_valid": true
   }
 ]

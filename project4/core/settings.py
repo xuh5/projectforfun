@@ -6,6 +6,37 @@ from pathlib import Path
 from dataclasses import dataclass
 
 
+# 支持的模型列表
+AVAILABLE_MODELS = [
+    {"group": "OpenAI", "models": [
+        {"value": "gpt-4o", "name": "GPT-4o"},
+        {"value": "gpt-4o-mini", "name": "GPT-4o Mini"},
+        {"value": "gpt-4-turbo", "name": "GPT-4 Turbo"},
+        {"value": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo"},
+    ]},
+    {"group": "Claude", "models": [
+        {"value": "claude-sonnet-4-20250514", "name": "Claude Sonnet 4"},
+        {"value": "claude-3-5-sonnet-20241022", "name": "Claude 3.5 Sonnet"},
+        {"value": "claude-3-5-haiku-20241022", "name": "Claude 3.5 Haiku"},
+        {"value": "claude-3-opus-20240229", "name": "Claude 3 Opus"},
+    ]},
+    {"group": "Gemini", "models": [
+        {"value": "gemini-pro", "name": "Gemini Pro"},
+        {"value": "gemini-1.5-pro", "name": "Gemini 1.5 Pro"},
+        {"value": "gemini-1.5-flash", "name": "Gemini 1.5 Flash"},
+    ]},
+    {"group": "Grok", "models": [
+        {"value": "grok-beta", "name": "Grok Beta"},
+        {"value": "grok-2", "name": "Grok 2"},
+    ]},
+]
+
+
+def get_available_models() -> list:
+    """获取可用的模型列表"""
+    return AVAILABLE_MODELS
+
+
 def get_data_dir() -> Path:
     """获取数据目录（兼容打包后的 exe）"""
     if getattr(sys, 'frozen', False):
